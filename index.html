@@ -735,7 +735,8 @@ body{transition:opacity .16s ease}
 <button data-area="business" onclick="showOwnerArea('business')">Business</button>
 <button data-area="catering" onclick="showOwnerArea('catering')">Catering</button>
 <button data-area="harnell" onclick="showOwnerArea('harnell')">Harnell</button>
-<button data-area="service" onclick="showOwnerArea('service')">Service</button></div>
+<button data-area="fusionhome" onclick="showOwnerArea('fusionhome')">Fusion at Home</button>
+          <button data-area="service" onclick="showOwnerArea('service')">Service</button></div>
 </div>
 <div id="page-dash" class="ownerPage"></div><div id="page-orders" class="ownerPage hidden"></div><div id="page-retailorders" class="ownerPage hidden"></div><div id="page-harnellorders" class="ownerPage hidden"></div><div id="page-menu" class="ownerPage hidden"></div><div id="page-stock" class="ownerPage hidden"></div><div id="page-costings" class="ownerPage hidden"></div><div id="page-cookbook" class="ownerPage hidden"></div><div id="page-performance" class="ownerPage hidden"></div><div id="page-targets" class="ownerPage hidden"></div><div id="page-banking" class="ownerPage hidden"></div>
 <div id="page-costs" class="ownerPage hidden"></div><div id="page-dailyadmin" class="ownerPage hidden"></div><div id="page-fusionhome" class="ownerPage hidden"></div><div id="page-catering" class="ownerPage hidden"></div><div id="page-harnell" class="ownerPage hidden"></div><div id="page-service" class="ownerPage hidden"></div><div id="page-prep" class="ownerPage hidden"></div>
@@ -1786,6 +1787,7 @@ const OWNER_AREAS={
   business:[['performance','P&L / Performance'],['targets','Targets'],['dailyadmin','Daily Admin'],['costs','Costs & Overheads'],['banking','Banking']],
   catering:[['catering','Catering']],
   harnell:[['harnell','Harnell']],
+  fusionhome:[['fusionhome','Fusion at Home']],
   service:[['service','Service']]
 };
 function ownerAreaForTab(tab){
@@ -1793,7 +1795,7 @@ function ownerAreaForTab(tab){
   return 'dashboard';
 }
 function ownerAreaLabel(area){
-  return {dashboard:'Dashboard',orders:'Orders',kitchen:'Kitchen',business:'Business',catering:'Catering',harnell:'Harnell',service:'Service'}[area]||area;
+  return {dashboard:'Dashboard',orders:'Orders',kitchen:'Kitchen',business:'Business',catering:'Catering',harnell:'Harnell',fusionhome:'Fusion at Home',service:'Service'}[area]||area;
 }
 function ownerAreaTabsHtml(area,current){
   const tabs=OWNER_AREAS[area]||[];
@@ -4234,7 +4236,7 @@ window.saveRetailOrder=async id=>{try{await api('/rest/v1/retail_orders?id=eq.'+
 /* Owner navigation */
 if(typeof OWNER_AREAS!=='undefined'){
   if(!OWNER_AREAS.orders.some(x=>x[0]==='retailorders'))OWNER_AREAS.orders.push(['retailorders','Postal Orders']);
-  if(!OWNER_AREAS.kitchen.some(x=>x[0]==='fusionhome'))OWNER_AREAS.kitchen.push(['fusionhome','Fusion at Home']);
+  OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(x=>x[0]!=='fusionhome');
 }
 const ffRetailOldShowTab=window.showTab;
 window.showTab=function(t){ffRetailOldShowTab(t);if(t==='fusionhome')renderFusionAtHome();if(t==='retailorders')renderRetailOrders()}
