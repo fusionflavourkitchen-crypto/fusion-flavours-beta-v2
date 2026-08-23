@@ -34,78 +34,72 @@
   );
   html=html.replaceAll('Pouches / units available','Units available');
 
-  /* Fusion at Home belongs in the main Owner area navigation, not inside Kitchen. */
-  html=html.replace(
-    "if(!OWNER_AREAS.kitchen.some(x=>x[0]==='fusionhome'))OWNER_AREAS.kitchen.push(['fusionhome','Fusion at Home']);",
-    "OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(x=>x[0]!=='fusionhome'); OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];"
-  );
-  html=html.replace(
-    "harnell:'Harnell',service:'Service'",
-    "harnell:'Harnell',fusionhome:'Fusion at Home',service:'Service'"
-  );
-  if(!html.includes('data-area="fusionhome"')){
-    html=html.replace(
-      '<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>',
-      '<button data-area="fusionhome" onclick="showOwnerArea(\'fusionhome\')">Fusion at Home</button>\n<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>'
-    );
+  const fix=`
+<script>
+/* ===== FINAL OWNER + FUSION AT HOME NAV FIX 2026-08-23 ===== */
+(function(){
+  function installFusionHomeArea(){
+    try{
+      if(typeof OWNER_AREAS!=='undefined'){
+        if(Array.isArray(OWNER_AREAS.kitchen)){
+          OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(function(x){return x[0]!=='fusionhome';});
+        }
+        OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];
+      }
+    }catch(_e){}
+
+    const menu=document.getElementById('ownerNavMenu');
+    if(menu){
+      menu.querySelectorAll('button[data-area="fusionhome"]').forEach(function(btn){btn.remove();});
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.dataset.area='fusionhome';
+      btn.textContent='Fusion at Home';
+      const serviceBtn=menu.querySelector('button[data-area="service"]');
+      if(serviceBtn) menu.insertBefore(btn,serviceBtn); else menu.appendChild(btn);
+      btn.addEventListener('click',function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        menu.classList.add('hidden');
+        try{
+          if(typeof showOwnerArea==='function') showOwnerArea('fusionhome');
+          else if(typeof showTab==='function') showTab('fusionhome');
+        }catch(_e){}
+      },true);
+    }
   }
 
-  const marker='/* ===== FINAL OWNER DASHBOARD FIX 2026-08-23 ===== */';
-  if(!html.includes(marker)){
-    const fix=`
-<script>
-/* ===== FINAL OWNER DASHBOARD FIX 2026-08-23 ===== */
-(function(){
   function installFinalOwnerFix(){
+    installFusionHomeArea();
+
     const entry=document.getElementById('ownerEntry');
     if(entry && !entry.dataset.finalOwnerFix){
       entry.dataset.finalOwnerFix='1';
       entry.addEventListener('click',function(e){
         e.preventDefault();
         e.stopImmediatePropagation();
-
-        /* The welcome page has an initial-view CSS rule with higher specificity
-           than .hidden. Change the route state first so it cannot stay over Owner. */
         document.documentElement.setAttribute('data-initial-view','owner');
-
-        const headerMenu=document.getElementById('headerMenu');
-        if(headerMenu) headerMenu.classList.add('hidden');
-
+        document.getElementById('headerMenu')?.classList.add('hidden');
         ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(function(id){
           const el=document.getElementById(id);
-          if(el){
-            el.classList.add('hidden');
-            el.style.display='none';
-          }
+          if(el){el.classList.add('hidden');el.style.display='none';}
         });
-
         const owner=document.getElementById('owner');
-        if(owner){
-          owner.classList.remove('hidden');
-          owner.style.display='block';
-        }
-
+        if(owner){owner.classList.remove('hidden');owner.style.display='block';}
         try{
           const u=new URL(location.href);
           u.search='';
           u.searchParams.set('view','owner');
           history.pushState({view:'owner'},'',u);
         }catch(_e){}
-
         try{
-          if(typeof token!=='undefined' && token && typeof openOwner==='function'){
-            openOwner();
-          }else{
-            const auth=document.getElementById('authPanel');
-            const dash=document.getElementById('dashboard');
-            if(auth){ auth.classList.remove('hidden'); auth.style.display='block'; }
-            if(dash){ dash.classList.add('hidden'); dash.style.display='none'; }
+          if(typeof token!=='undefined' && token && typeof openOwner==='function') openOwner();
+          else{
+            const auth=document.getElementById('authPanel'),dash=document.getElementById('dashboard');
+            if(auth){auth.classList.remove('hidden');auth.style.display='block';}
+            if(dash){dash.classList.add('hidden');dash.style.display='none';}
           }
-        }catch(_e){
-          const auth=document.getElementById('authPanel');
-          if(auth){ auth.classList.remove('hidden'); auth.style.display='block'; }
-        }
-
+        }catch(_e){}
         window.scrollTo(0,0);
       },true);
     }
@@ -123,7 +117,7 @@
 
     if(menu){
       menu.querySelectorAll('button[data-area]').forEach(function(btn){
-        if(btn.dataset.finalOwnerFix)return;
+        if(btn.dataset.finalOwnerFix || btn.dataset.area==='fusionhome')return;
         btn.dataset.finalOwnerFix='1';
         btn.addEventListener('click',function(e){
           e.preventDefault();
@@ -137,12 +131,12 @@
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',installFinalOwnerFix);
   else installFinalOwnerFix();
-  setTimeout(installFinalOwnerFix,500);
+  setTimeout(installFinalOwnerFix,250);
+  setTimeout(installFinalOwnerFix,1000);
 })();
 <\/script>`;
-    html=html.replace('</body>',fix+'\n</body>');
-  }
 
+  html=html.replace('</body>',fix+'\n</body>');
   document.open();
   document.write(html);
   document.close();
