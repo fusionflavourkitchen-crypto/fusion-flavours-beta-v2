@@ -8,110 +8,29 @@
 <body>
 <script>
 (async function(){
-  const res=await fetch('/index.html?source=1',{cache:'no-store'});
+  const res=await fetch('/index.html?source='+Date.now(),{cache:'no-store'});
   if(!res.ok) throw new Error('Could not load Fusion Flavours app');
   let html=await res.text();
 
   html=html.replaceAll('Pouches / units available','Units available');
 
-  /* Put Fusion at Home into the actual owner-menu HTML before the app is rendered. */
+  /* Make Fusion at Home a real top-level Owner area before rendering. */
   const serviceOwnerButton='<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>';
   const fusionHomeOwnerButton='<button data-area="fusionhome" onclick="showOwnerArea(\'fusionhome\')">Fusion at Home</button>';
-  if(!html.includes('data-area="fusionhome"')){
-    html=html.replace(serviceOwnerButton,fusionHomeOwnerButton+'\n'+serviceOwnerButton);
-  }
+  html=html.replace(serviceOwnerButton,fusionHomeOwnerButton+'\n'+serviceOwnerButton);
 
-  const fix=`
-<script>
-/* ===== OWNER + FUSION AT HOME NAV FIX ===== */
-(function(){
-  function installFusionHomeArea(){
-    try{
-      if(typeof OWNER_AREAS!=='undefined'){
-        if(Array.isArray(OWNER_AREAS.kitchen)){
-          OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(function(x){return x[0]!=='fusionhome';});
-        }
-        OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];
-      }
-    }catch(e){console.warn('Fusion at Home area setup',e);}
+  /* The retail patch used to push Fusion at Home back inside Kitchen. Replace that at source. */
+  html=html.replace(
+    "if(!OWNER_AREAS.kitchen.some(x=>x[0]==='fusionhome'))OWNER_AREAS.kitchen.push(['fusionhome','Fusion at Home']);",
+    "OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(x=>x[0]!=='fusionhome');OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];"
+  );
 
-    const menu=document.getElementById('ownerNavMenu');
-    if(!menu) return;
+  /* Give the new top-level area the correct display label. */
+  html=html.replace(
+    "catering:'Catering',harnell:'Harnell',service:'Service'",
+    "catering:'Catering',harnell:'Harnell',fusionhome:'Fusion at Home',service:'Service'"
+  );
 
-    let btn=menu.querySelector('button[data-area="fusionhome"]');
-    if(!btn){
-      btn=document.createElement('button');
-      btn.type='button';
-      btn.dataset.area='fusionhome';
-      btn.textContent='Fusion at Home';
-      const serviceBtn=menu.querySelector('button[data-area="service"]');
-      if(serviceBtn) menu.insertBefore(btn,serviceBtn); else menu.appendChild(btn);
-    }
-
-    if(!btn.dataset.fusionHomeBound){
-      btn.dataset.fusionHomeBound='1';
-      btn.addEventListener('click',function(e){
-        e.preventDefault();
-        menu.classList.add('hidden');
-        try{
-          if(typeof showOwnerArea==='function') showOwnerArea('fusionhome');
-          else if(typeof showTab==='function') showTab('fusionhome');
-        }catch(err){console.error(err);}
-      });
-    }
-  }
-
-  function installOwnerEntryFix(){
-    const entry=document.getElementById('ownerEntry');
-    if(entry && !entry.dataset.finalOwnerFix){
-      entry.dataset.finalOwnerFix='1';
-      entry.addEventListener('click',function(e){
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        document.documentElement.setAttribute('data-initial-view','owner');
-        document.getElementById('headerMenu')?.classList.add('hidden');
-        ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(function(id){
-          const el=document.getElementById(id);
-          if(el){el.classList.add('hidden');el.style.display='none';}
-        });
-        const owner=document.getElementById('owner');
-        if(owner){owner.classList.remove('hidden');owner.style.display='block';}
-        try{
-          const u=new URL(location.href);u.search='';u.searchParams.set('view','owner');history.pushState({view:'owner'},'',u);
-        }catch(_e){}
-        try{
-          if(typeof token!=='undefined' && token && typeof openOwner==='function') openOwner();
-          else{
-            const auth=document.getElementById('authPanel'),dash=document.getElementById('dashboard');
-            if(auth){auth.classList.remove('hidden');auth.style.display='block';}
-            if(dash){dash.classList.add('hidden');dash.style.display='none';}
-          }
-        }catch(_e){}
-        setTimeout(installFusionHomeArea,0);
-        setTimeout(installFusionHomeArea,100);
-        window.scrollTo(0,0);
-      },true);
-    }
-  }
-
-  function installAll(){installOwnerEntryFix();installFusionHomeArea();}
-
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',installAll);
-  else installAll();
-
-  const observer=new MutationObserver(function(){
-    clearTimeout(window.__fusionHomeNavTimer);
-    window.__fusionHomeNavTimer=setTimeout(installFusionHomeArea,20);
-  });
-  observer.observe(document.documentElement,{childList:true,subtree:true});
-
-  setTimeout(installAll,250);
-  setTimeout(installAll,1000);
-  setTimeout(installAll,2500);
-})();
-<\/script>`;
-
-  html=html.replace('</body>',fix+'\n</body>');
   document.open();
   document.write(html);
   document.close();
