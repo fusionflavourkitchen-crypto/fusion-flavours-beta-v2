@@ -14,22 +14,60 @@
 
   html=html.replaceAll('Pouches / units available','Units available');
 
-  /* Make Fusion at Home a real top-level Owner area before rendering. */
-  const serviceOwnerButton='<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>';
-  const fusionHomeOwnerButton='<button data-area="fusionhome" onclick="showOwnerArea(\'fusionhome\')">Fusion at Home</button>';
-  html=html.replace(serviceOwnerButton,fusionHomeOwnerButton+'\n'+serviceOwnerButton);
+  /* Permanently reshape the Owner menu in the HTML that is about to run. */
+  const serviceButton='<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>';
+  const fusionButton='<button data-area="fusionhome" onclick="showOwnerArea(\'fusionhome\')">Fusion at Home</button>';
+  html=html.replace(/<button data-area="fusionhome"[^>]*>Fusion at Home<\/button>\s*/g,'');
+  html=html.replace(serviceButton,fusionButton+'\n'+serviceButton);
 
-  /* The retail patch used to push Fusion at Home back inside Kitchen. Replace that at source. */
+  /* Remove every known version that puts Fusion at Home inside Kitchen. */
+  html=html.replace(/if\(!OWNER_AREAS\.kitchen\.some\(x=>x\[0\]==='fusionhome'\)\)OWNER_AREAS\.kitchen\.push\(\['fusionhome','Fusion at Home'\]\);/g,
+    "OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(x=>x[0]!=='fusionhome');OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];");
+
+  /* Ensure the top-level area exists even if the source changes later. */
   html=html.replace(
-    "if(!OWNER_AREAS.kitchen.some(x=>x[0]==='fusionhome'))OWNER_AREAS.kitchen.push(['fusionhome','Fusion at Home']);",
-    "OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(x=>x[0]!=='fusionhome');OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];"
+    "service:[['service','Service']]",
+    "fusionhome:[['fusionhome','Fusion at Home']],\n  service:[['service','Service']]"
   );
-
-  /* Give the new top-level area the correct display label. */
   html=html.replace(
     "catering:'Catering',harnell:'Harnell',service:'Service'",
     "catering:'Catering',harnell:'Harnell',fusionhome:'Fusion at Home',service:'Service'"
   );
+
+  /* Final runtime guard: runs after the whole app has loaded and wins over later patches. */
+  const guard=`<script>
+(function(){
+  function forceFusionHomeTopLevel(){
+    try{
+      if(typeof OWNER_AREAS!=='undefined'){
+        if(Array.isArray(OWNER_AREAS.kitchen)) OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(function(x){return x[0]!=='fusionhome';});
+        OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];
+      }
+      var menu=document.getElementById('ownerNavMenu');
+      if(menu){
+        menu.querySelectorAll('button[data-area="fusionhome"]').forEach(function(b){b.remove();});
+        var b=document.createElement('button');
+        b.type='button';
+        b.setAttribute('data-area','fusionhome');
+        b.textContent='Fusion at Home';
+        b.onclick=function(e){
+          e.preventDefault();
+          forceFusionHomeTopLevel();
+          menu.classList.add('hidden');
+          if(typeof showTab==='function') showTab('fusionhome');
+        };
+        var service=menu.querySelector('button[data-area="service"]');
+        if(service) menu.insertBefore(b,service); else menu.appendChild(b);
+      }
+    }catch(e){console.error('Fusion at Home nav guard',e);}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',forceFusionHomeTopLevel); else forceFusionHomeTopLevel();
+  setTimeout(forceFusionHomeTopLevel,100);
+  setTimeout(forceFusionHomeTopLevel,500);
+  setTimeout(forceFusionHomeTopLevel,1500);
+})();
+<\/script>`;
+  html=html.replace('</body>',guard+'\n</body>');
 
   document.open();
   document.write(html);
