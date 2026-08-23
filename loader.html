@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fusion Flavours</title>
+</head>
+<body>
+<script>
+(async function(){
+  const res=await fetch('/index.html?source=1',{cache:'no-store'});
+  if(!res.ok) throw new Error('Could not load Fusion Flavours app');
+  let html=await res.text();
+
+  const specialCss=`<style>
+.welcomeRouteCard.route-fusionhome{
+  background:linear-gradient(145deg,#171717,#28211d)!important;
+  color:#fff!important;
+  border:1px solid var(--o)!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.18)!important;
+}
+.welcomeRouteCard.route-fusionhome p{color:#eadfd7!important}
+</style>`;
+  html=html.replace(specialCss,'');
+
+  html=html.replace(
+    `<p>${'${'}esc(x.subtitle||'')${'}'}</p>`,
+    `<p>${'${'}esc(x.route==='fusionhome'?'Fusion Flavours products delivered by post.':(x.subtitle||''))${'}'}</p>`
+  );
+
+  html=html.replace(
+    `${'${'}String(i.name).toLowerCase().includes('blend')?\`<div class="retailIngredients"><b>Ingredients:</b> ${'${'}RETAIL_INGREDIENTS${'}'}<br><b>Net weight:</b> 100g</div>\`:''${'}'}`,
+    ''
+  );
+  html=html.replaceAll('Pouches / units available','Units available');
+
+  const marker='/* ===== FINAL OWNER DASHBOARD FIX 2026-08-23 ===== */';
+  if(!html.includes(marker)){
+    const fix=`
+<script>
+/* ===== FINAL OWNER DASHBOARD FIX 2026-08-23 ===== */
+(function(){
+  function installFinalOwnerFix(){
+    const entry=document.getElementById('ownerEntry');
+    if(entry && !entry.dataset.finalOwnerFix){
+      entry.dataset.finalOwnerFix='1';
+      entry.addEventListener('click',function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        document.getElementById('headerMenu')?.classList.add('hidden');
+        ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+        const owner=document.getElementById('owner');
+        if(owner) owner.classList.remove('hidden');
+        try{
+          const u=new URL(location.href);
+          u.search='';
+          u.searchParams.set('view','owner');
+          history.pushState({view:'owner'},'',u);
+        }catch(_e){}
+        try{
+          if(typeof token!=='undefined' && token && typeof openOwner==='function') openOwner();
+          else {
+            document.getElementById('authPanel')?.classList.remove('hidden');
+            document.getElementById('dashboard')?.classList.add('hidden');
+          }
+        }catch(_e){}
+        window.scrollTo(0,0);
+      },true);
+    }
+
+    const toggle=document.getElementById('ownerNavToggle');
+    const menu=document.getElementById('ownerNavMenu');
+    if(toggle && menu && !toggle.dataset.finalOwnerFix){
+      toggle.dataset.finalOwnerFix='1';
+      toggle.addEventListener('click',function(e){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        menu.classList.toggle('hidden');
+      },true);
+    }
+
+    if(menu){
+      menu.querySelectorAll('button[data-area]').forEach(btn=>{
+        if(btn.dataset.finalOwnerFix)return;
+        btn.dataset.finalOwnerFix='1';
+        btn.addEventListener('click',function(e){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          menu.classList.add('hidden');
+          if(typeof showOwnerArea==='function') showOwnerArea(btn.dataset.area);
+        },true);
+      });
+    }
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',installFinalOwnerFix);
+  else installFinalOwnerFix();
+  setTimeout(installFinalOwnerFix,500);
+})();
+<\/script>`;
+    html=html.replace('</body>',fix+'\n</body>');
+  }
+
+  document.open();
+  document.write(html);
+  document.close();
+})().catch(err=>{
+  document.body.innerHTML='<div style="font-family:system-ui;padding:24px"><h2>Fusion Flavours</h2><p>The app could not load. Please refresh.</p></div>';
+  console.error(err);
+});
+</script>
+</body>
+</html>
