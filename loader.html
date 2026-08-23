@@ -14,6 +14,13 @@
 
   html=html.replaceAll('Pouches / units available','Units available');
 
+  /* Put Fusion at Home into the actual owner-menu HTML before the app is rendered. */
+  const serviceOwnerButton='<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>';
+  const fusionHomeOwnerButton='<button data-area="fusionhome" onclick="showOwnerArea(\'fusionhome\')">Fusion at Home</button>';
+  if(!html.includes('data-area="fusionhome"')){
+    html=html.replace(serviceOwnerButton,fusionHomeOwnerButton+'\n'+serviceOwnerButton);
+  }
+
   const fix=`
 <script>
 /* ===== OWNER + FUSION AT HOME NAV FIX ===== */
@@ -31,26 +38,27 @@
     const menu=document.getElementById('ownerNavMenu');
     if(!menu) return;
 
-    /* Remove any old/nested Fusion at Home owner buttons first. */
-    menu.querySelectorAll('button[data-area="fusionhome"]').forEach(function(btn){btn.remove();});
+    let btn=menu.querySelector('button[data-area="fusionhome"]');
+    if(!btn){
+      btn=document.createElement('button');
+      btn.type='button';
+      btn.dataset.area='fusionhome';
+      btn.textContent='Fusion at Home';
+      const serviceBtn=menu.querySelector('button[data-area="service"]');
+      if(serviceBtn) menu.insertBefore(btn,serviceBtn); else menu.appendChild(btn);
+    }
 
-    const btn=document.createElement('button');
-    btn.type='button';
-    btn.dataset.area='fusionhome';
-    btn.dataset.fusionHomeMain='1';
-    btn.textContent='Fusion at Home';
-    const serviceBtn=menu.querySelector('button[data-area="service"]');
-    if(serviceBtn) menu.insertBefore(btn,serviceBtn); else menu.appendChild(btn);
-
-    btn.addEventListener('click',function(e){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      menu.classList.add('hidden');
-      try{
-        if(typeof showOwnerArea==='function') showOwnerArea('fusionhome');
-        else if(typeof showTab==='function') showTab('fusionhome');
-      }catch(err){console.error(err);}
-    },true);
+    if(!btn.dataset.fusionHomeBound){
+      btn.dataset.fusionHomeBound='1';
+      btn.addEventListener('click',function(e){
+        e.preventDefault();
+        menu.classList.add('hidden');
+        try{
+          if(typeof showOwnerArea==='function') showOwnerArea('fusionhome');
+          else if(typeof showTab==='function') showTab('fusionhome');
+        }catch(err){console.error(err);}
+      });
+    }
   }
 
   function installOwnerEntryFix(){
@@ -91,16 +99,9 @@
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',installAll);
   else installAll();
 
-  /* The owner menu is rebuilt after login/openOwner. Keep the main area present whenever that happens. */
-  const observer=new MutationObserver(function(mutations){
-    let relevant=false;
-    for(const m of mutations){
-      if(m.type==='childList'){relevant=true;break;}
-    }
-    if(relevant){
-      clearTimeout(window.__fusionHomeNavTimer);
-      window.__fusionHomeNavTimer=setTimeout(installFusionHomeArea,20);
-    }
+  const observer=new MutationObserver(function(){
+    clearTimeout(window.__fusionHomeNavTimer);
+    window.__fusionHomeNavTimer=setTimeout(installFusionHomeArea,20);
   });
   observer.observe(document.documentElement,{childList:true,subtree:true});
 
