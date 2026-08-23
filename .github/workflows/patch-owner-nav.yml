@@ -1,0 +1,81 @@
+name: One-time owner navigation source patch
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-owner-nav.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch index.html directly
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          original = s
+
+          # 1. Remove any static Fusion at Home owner-nav buttons first, then insert exactly one before Service.
+          import re
+          s = re.sub(r'\s*<button\s+data-area="fusionhome"[^>]*>Fusion at Home</button>', '', s)
+          service = '<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>'
+          fusion = '<button data-area="fusionhome" onclick="showOwnerArea(\'fusionhome\')">Fusion at Home</button>'
+          if service not in s:
+              raise SystemExit('Service owner-nav button not found; refusing unsafe patch')
+          s = s.replace(service, fusion + '\n          ' + service, 1)
+
+          # 2. Put Fusion at Home in the actual top-level OWNER_AREAS object.
+          old_service_area = "  service:[['service','Service']]"
+          new_service_area = "  fusionhome:[['fusionhome','Fusion at Home']],\n  service:[['service','Service']]"
+          if "fusionhome:[['fusionhome','Fusion at Home']]" not in s:
+              if old_service_area not in s:
+                  raise SystemExit('OWNER_AREAS service entry not found; refusing unsafe patch')
+              s = s.replace(old_service_area, new_service_area, 1)
+
+          # 3. Give the top-level area the proper label.
+          old_labels = "catering:'Catering',harnell:'Harnell',service:'Service'"
+          new_labels = "catering:'Catering',harnell:'Harnell',fusionhome:'Fusion at Home',service:'Service'"
+          if "fusionhome:'Fusion at Home'" not in s:
+              if old_labels not in s:
+                  raise SystemExit('Owner label map not found; refusing unsafe patch')
+              s = s.replace(old_labels, new_labels, 1)
+
+          # 4. Kill the later retail code that pushes Fusion at Home back into Kitchen.
+          old_push = "if(!OWNER_AREAS.kitchen.some(x=>x[0]==='fusionhome'))OWNER_AREAS.kitchen.push(['fusionhome','Fusion at Home']);"
+          replacement = "OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(x=>x[0]!=='fusionhome');"
+          s = s.replace(old_push, replacement)
+
+          # 5. Safety checks: exactly one static top-level button, no Kitchen push, and top-level area exists.
+          if s.count('data-area="fusionhome"') != 1:
+              raise SystemExit(f'Expected exactly one Fusion at Home owner button, found {s.count(chr(100)+"ata-area=\"fusionhome\"")}')
+          if "OWNER_AREAS.kitchen.push(['fusionhome','Fusion at Home'])" in s:
+              raise SystemExit('Kitchen Fusion at Home push still exists')
+          if "fusionhome:[['fusionhome','Fusion at Home']]" not in s:
+              raise SystemExit('Top-level Fusion at Home OWNER_AREAS entry missing')
+
+          if s == original:
+              raise SystemExit('No changes made; source was already patched')
+
+          p.write_text(s, encoding='utf-8')
+          print('Direct source patch completed and verified.')
+          PY
+
+      - name: Commit direct source fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Fix Fusion at Home owner navigation in index source"
+          git push
