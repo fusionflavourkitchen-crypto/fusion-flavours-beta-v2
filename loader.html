@@ -39,6 +39,16 @@
     "if(!OWNER_AREAS.kitchen.some(x=>x[0]==='fusionhome'))OWNER_AREAS.kitchen.push(['fusionhome','Fusion at Home']);",
     "OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(x=>x[0]!=='fusionhome'); OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];"
   );
+  html=html.replace(
+    "harnell:'Harnell',service:'Service'",
+    "harnell:'Harnell',fusionhome:'Fusion at Home',service:'Service'"
+  );
+  if(!html.includes('data-area="fusionhome"')){
+    html=html.replace(
+      '<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>',
+      '<button data-area="fusionhome" onclick="showOwnerArea(\'fusionhome\')">Fusion at Home</button>\n<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>'
+    );
+  }
 
   const marker='/* ===== FINAL OWNER DASHBOARD FIX 2026-08-23 ===== */';
   if(!html.includes(marker)){
