@@ -47,23 +47,49 @@
       entry.addEventListener('click',function(e){
         e.preventDefault();
         e.stopImmediatePropagation();
-        document.getElementById('headerMenu')?.classList.add('hidden');
-        ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+
+        /* The welcome page has an initial-view CSS rule with higher specificity
+           than .hidden. Change the route state first so it cannot stay over Owner. */
+        document.documentElement.setAttribute('data-initial-view','owner');
+
+        const headerMenu=document.getElementById('headerMenu');
+        if(headerMenu) headerMenu.classList.add('hidden');
+
+        ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(function(id){
+          const el=document.getElementById(id);
+          if(el){
+            el.classList.add('hidden');
+            el.style.display='none';
+          }
+        });
+
         const owner=document.getElementById('owner');
-        if(owner) owner.classList.remove('hidden');
+        if(owner){
+          owner.classList.remove('hidden');
+          owner.style.display='block';
+        }
+
         try{
           const u=new URL(location.href);
           u.search='';
           u.searchParams.set('view','owner');
           history.pushState({view:'owner'},'',u);
         }catch(_e){}
+
         try{
-          if(typeof token!=='undefined' && token && typeof openOwner==='function') openOwner();
-          else {
-            document.getElementById('authPanel')?.classList.remove('hidden');
-            document.getElementById('dashboard')?.classList.add('hidden');
+          if(typeof token!=='undefined' && token && typeof openOwner==='function'){
+            openOwner();
+          }else{
+            const auth=document.getElementById('authPanel');
+            const dash=document.getElementById('dashboard');
+            if(auth){ auth.classList.remove('hidden'); auth.style.display='block'; }
+            if(dash){ dash.classList.add('hidden'); dash.style.display='none'; }
           }
-        }catch(_e){}
+        }catch(_e){
+          const auth=document.getElementById('authPanel');
+          if(auth){ auth.classList.remove('hidden'); auth.style.display='block'; }
+        }
+
         window.scrollTo(0,0);
       },true);
     }
@@ -80,7 +106,7 @@
     }
 
     if(menu){
-      menu.querySelectorAll('button[data-area]').forEach(btn=>{
+      menu.querySelectorAll('button[data-area]').forEach(function(btn){
         if(btn.dataset.finalOwnerFix)return;
         btn.dataset.finalOwnerFix='1';
         btn.addEventListener('click',function(e){
