@@ -34,6 +34,12 @@
   );
   html=html.replaceAll('Pouches / units available','Units available');
 
+  /* Fusion at Home belongs in the main Owner area navigation, not inside Kitchen. */
+  html=html.replace(
+    "if(!OWNER_AREAS.kitchen.some(x=>x[0]==='fusionhome'))OWNER_AREAS.kitchen.push(['fusionhome','Fusion at Home']);",
+    "OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(x=>x[0]!=='fusionhome'); OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];"
+  );
+
   const marker='/* ===== FINAL OWNER DASHBOARD FIX 2026-08-23 ===== */';
   if(!html.includes(marker)){
     const fix=`
