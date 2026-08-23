@@ -12,31 +12,11 @@
   if(!res.ok) throw new Error('Could not load Fusion Flavours app');
   let html=await res.text();
 
-  const specialCss=`<style>
-.welcomeRouteCard.route-fusionhome{
-  background:linear-gradient(145deg,#171717,#28211d)!important;
-  color:#fff!important;
-  border:1px solid var(--o)!important;
-  box-shadow:0 8px 22px rgba(0,0,0,.18)!important;
-}
-.welcomeRouteCard.route-fusionhome p{color:#eadfd7!important}
-</style>`;
-  html=html.replace(specialCss,'');
-
-  html=html.replace(
-    `<p>${'${'}esc(x.subtitle||'')${'}'}</p>`,
-    `<p>${'${'}esc(x.route==='fusionhome'?'Fusion Flavours products delivered by post.':(x.subtitle||''))${'}'}</p>`
-  );
-
-  html=html.replace(
-    `${'${'}String(i.name).toLowerCase().includes('blend')?\`<div class="retailIngredients"><b>Ingredients:</b> ${'${'}RETAIL_INGREDIENTS${'}'}<br><b>Net weight:</b> 100g</div>\`:''${'}'}`,
-    ''
-  );
   html=html.replaceAll('Pouches / units available','Units available');
 
   const fix=`
 <script>
-/* ===== FINAL OWNER + FUSION AT HOME NAV FIX 2026-08-23 ===== */
+/* ===== OWNER + FUSION AT HOME NAV FIX ===== */
 (function(){
   function installFusionHomeArea(){
     try{
@@ -46,32 +26,34 @@
         }
         OWNER_AREAS.fusionhome=[['fusionhome','Fusion at Home']];
       }
-    }catch(_e){}
+    }catch(e){console.warn('Fusion at Home area setup',e);}
 
     const menu=document.getElementById('ownerNavMenu');
-    if(menu){
-      menu.querySelectorAll('button[data-area="fusionhome"]').forEach(function(btn){btn.remove();});
-      const btn=document.createElement('button');
-      btn.type='button';
-      btn.dataset.area='fusionhome';
-      btn.textContent='Fusion at Home';
-      const serviceBtn=menu.querySelector('button[data-area="service"]');
-      if(serviceBtn) menu.insertBefore(btn,serviceBtn); else menu.appendChild(btn);
-      btn.addEventListener('click',function(e){
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        menu.classList.add('hidden');
-        try{
-          if(typeof showOwnerArea==='function') showOwnerArea('fusionhome');
-          else if(typeof showTab==='function') showTab('fusionhome');
-        }catch(_e){}
-      },true);
-    }
+    if(!menu) return;
+
+    /* Remove any old/nested Fusion at Home owner buttons first. */
+    menu.querySelectorAll('button[data-area="fusionhome"]').forEach(function(btn){btn.remove();});
+
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.dataset.area='fusionhome';
+    btn.dataset.fusionHomeMain='1';
+    btn.textContent='Fusion at Home';
+    const serviceBtn=menu.querySelector('button[data-area="service"]');
+    if(serviceBtn) menu.insertBefore(btn,serviceBtn); else menu.appendChild(btn);
+
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      menu.classList.add('hidden');
+      try{
+        if(typeof showOwnerArea==='function') showOwnerArea('fusionhome');
+        else if(typeof showTab==='function') showTab('fusionhome');
+      }catch(err){console.error(err);}
+    },true);
   }
 
-  function installFinalOwnerFix(){
-    installFusionHomeArea();
-
+  function installOwnerEntryFix(){
     const entry=document.getElementById('ownerEntry');
     if(entry && !entry.dataset.finalOwnerFix){
       entry.dataset.finalOwnerFix='1';
@@ -87,10 +69,7 @@
         const owner=document.getElementById('owner');
         if(owner){owner.classList.remove('hidden');owner.style.display='block';}
         try{
-          const u=new URL(location.href);
-          u.search='';
-          u.searchParams.set('view','owner');
-          history.pushState({view:'owner'},'',u);
+          const u=new URL(location.href);u.search='';u.searchParams.set('view','owner');history.pushState({view:'owner'},'',u);
         }catch(_e){}
         try{
           if(typeof token!=='undefined' && token && typeof openOwner==='function') openOwner();
@@ -100,39 +79,34 @@
             if(dash){dash.classList.add('hidden');dash.style.display='none';}
           }
         }catch(_e){}
+        setTimeout(installFusionHomeArea,0);
+        setTimeout(installFusionHomeArea,100);
         window.scrollTo(0,0);
       },true);
     }
-
-    const toggle=document.getElementById('ownerNavToggle');
-    const menu=document.getElementById('ownerNavMenu');
-    if(toggle && menu && !toggle.dataset.finalOwnerFix){
-      toggle.dataset.finalOwnerFix='1';
-      toggle.addEventListener('click',function(e){
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        menu.classList.toggle('hidden');
-      },true);
-    }
-
-    if(menu){
-      menu.querySelectorAll('button[data-area]').forEach(function(btn){
-        if(btn.dataset.finalOwnerFix || btn.dataset.area==='fusionhome')return;
-        btn.dataset.finalOwnerFix='1';
-        btn.addEventListener('click',function(e){
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          menu.classList.add('hidden');
-          if(typeof showOwnerArea==='function') showOwnerArea(btn.dataset.area);
-        },true);
-      });
-    }
   }
 
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',installFinalOwnerFix);
-  else installFinalOwnerFix();
-  setTimeout(installFinalOwnerFix,250);
-  setTimeout(installFinalOwnerFix,1000);
+  function installAll(){installOwnerEntryFix();installFusionHomeArea();}
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',installAll);
+  else installAll();
+
+  /* The owner menu is rebuilt after login/openOwner. Keep the main area present whenever that happens. */
+  const observer=new MutationObserver(function(mutations){
+    let relevant=false;
+    for(const m of mutations){
+      if(m.type==='childList'){relevant=true;break;}
+    }
+    if(relevant){
+      clearTimeout(window.__fusionHomeNavTimer);
+      window.__fusionHomeNavTimer=setTimeout(installFusionHomeArea,20);
+    }
+  });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+
+  setTimeout(installAll,250);
+  setTimeout(installAll,1000);
+  setTimeout(installAll,2500);
 })();
 <\/script>`;
 
