@@ -1,0 +1,55 @@
+name: Apply latest Fusion Flavours update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.trigger-latest-update'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          original = s
+
+          # Fusion at Home hub card: use the same colours/style as the other hub cards.
+          special_css = '''<style>\n.welcomeRouteCard.route-fusionhome{\n  background:linear-gradient(145deg,#171717,#28211d)!important;\n  color:#fff!important;\n  border:1px solid var(--o)!important;\n  box-shadow:0 8px 22px rgba(0,0,0,.18)!important;\n}\n.welcomeRouteCard.route-fusionhome p{color:#eadfd7!important}\n</style>'''
+          s = s.replace(special_css, '')
+
+          # Hub description: generic products, not seasonings/spice mixes.
+          old_card = "return `<a class=\"welcomeRouteCard route-${esc(safeRoute)}\" href=\"${esc(routeUrl(x.route))}\"><div class=\"welcomeRouteIcon\">${esc(x.icon||'🔥')}</div><h2>${esc(x.title)}</h2><p>${esc(x.subtitle||'')}</p></a>`"
+          new_card = "return `<a class=\"welcomeRouteCard route-${esc(safeRoute)}\" href=\"${esc(routeUrl(x.route))}\"><div class=\"welcomeRouteIcon\">${esc(x.icon||'🔥')}</div><h2>${esc(x.title)}</h2><p>${esc(x.route==='fusionhome'?'Fusion Flavours products delivered by post.':(x.subtitle||''))}</p></a>`"
+          s = s.replace(old_card, new_card)
+
+          # Retail page: keep it product-generic rather than hard-coding a spice-blend ingredient panel.
+          import re
+          s = re.sub(r"\$\{String\(i\.name\)\.toLowerCase\(\)\.includes\('blend'\)\?`<div class=\\\"retailIngredients\\\"><b>Ingredients:</b> \$\{RETAIL_INGREDIENTS\}<br><b>Net weight:</b> 100g</div>`:''\}", "", s)
+          s = s.replace('Pouches / units available', 'Units available')
+
+          # Add a final, isolated owner navigation fix so the Owner Dashboard and Owner Menu work even if earlier wrappers changed.
+          marker = '/* ===== FINAL OWNER NAV FIX 2026-08-23 ===== */'
+          if marker not in s:
+              patch = r'''\n<script>\n/* ===== FINAL OWNER NAV FIX 2026-08-23 ===== */\n(function(){\n  function showOwnerScreen(){\n    const ids=['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'];\n    ids.forEach(id=>document.getElementById(id)?.classList.add('hidden'));\n    document.getElementById('owner')?.classList.remove('hidden');\n    document.getElementById('headerMenu')?.classList.add('hidden');\n    if(window.token && typeof window.openOwner==='function') window.openOwner();\n  }\n  function setup(){\n    const entry=document.getElementById('ownerEntry');\n    const toggle=document.getElementById('ownerNavToggle');\n    const menu=document.getElementById('ownerNavMenu');\n    if(entry) entry.onclick=function(e){e.preventDefault();e.stopPropagation();showOwnerScreen()};\n    if(toggle && menu) toggle.onclick=function(e){e.preventDefault();e.stopPropagation();menu.classList.toggle('hidden')};\n    if(menu){\n      menu.querySelectorAll('button[data-area]').forEach(btn=>{\n        btn.onclick=function(e){\n          e.preventDefault();e.stopPropagation();\n          menu.classList.add('hidden');\n          const area=btn.dataset.area;\n          if(typeof window.showOwnerArea==='function') window.showOwnerArea(area);\n        };\n      });\n    }\n    document.addEventListener('click',function(e){\n      const bar=document.querySelector('.ownerNavBar');\n      if(menu && bar && !bar.contains(e.target)) menu.classList.add('hidden');\n    });\n  }\n  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setup); else setup();\n})();\n</script>\n'''
+              s = s.replace('</body>', patch + '\n</body>')
+
+          if s == original:
+              raise SystemExit('No changes were applied; expected patterns were not found.')
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit update
+        run: |
+          git config user.name "Fusion Flavours Update Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix Fusion at Home card and owner dashboard navigation"
+          git push
