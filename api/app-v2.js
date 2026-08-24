@@ -32,10 +32,11 @@ module.exports = async function handler(req, res) {
   let output = Buffer.isBuffer(body) ? body.toString('utf8') : String(body || '');
 
   if (statusCode === 200 && /<html/i.test(output)) {
-    // Delivery page: remove the two fixed spice/Fusion at Home promo panels.
+    // Delivery page: keep the Signature Fusion Spice Blend banner, but remove
+    // only the separate Fusion at Home £4.99 promotional panel.
     // The separate postal Fusion at Home shop remains untouched.
     output = output.replace(
-      /<div class="spiceBanner"[\s\S]*?<section id="specialSection"/,
+      /<div class="fusionAtHomeWelcome">[\s\S]*?<\/div>\s*<section id="specialSection"/,
       '<section id="specialSection"'
     );
 
