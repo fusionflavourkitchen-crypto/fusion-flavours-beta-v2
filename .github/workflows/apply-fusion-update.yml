@@ -1,0 +1,31 @@
+name: Apply Fusion Flavours update
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-fusion-update.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply approved app update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --check .fusion-update.patch
+          git apply .fusion-update.patch
+          rm -f .fusion-update.patch .github/workflows/apply-fusion-update.yml
+          git config user.name "Fusion Flavours Update"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix owner dashboard and add postal blend products"
+          git push origin HEAD:main
