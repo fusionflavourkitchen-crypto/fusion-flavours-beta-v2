@@ -589,11 +589,6 @@ body{transition:opacity .16s ease}
   </div>
   <div class="spiceSprinkle" aria-hidden="true">✦ · ✦</div>
 </div>
-<div class="fusionAtHomeWelcome">
-  <div><small>NEW · FUSION AT HOME</small><h2>Bring the Fusion Flavours taste home.</h2>
-  <p>Our Signature House Blend is now available in a 100g resealable pouch — the same Mediterranean-inspired blend behind our Fusion Flavours dishes.</p></div>
-  <button onclick="goFusionAtHome()">Shop House Blend · £4.99</button>
-</div>
 <section id="specialSection" class="section"><h2 class="sectionTitle">Today’s Specials</h2><div id="specials" class="grid"></div></section>
 <div id="menuSections"></div>
 <button id="customerMenuTrigger" class="customerMenuTrigger" onclick="openCustomerMenuDrawer()" aria-label="Open menu"><span>☰</span><b>Menu</b></button>
@@ -821,7 +816,7 @@ window.startRetailCheckout=async()=>{
 
 </script>
 <script>
-const SUPA='https://uhautgiebtkvrxfsqabq.supabase.co',KEY='sb_publishable_XPAXC44lyPin89u8l_LdKw_3nLMlI9J',OWNER_EMAIL='fusionflavourkitchen@gmail.com',IMAGE_BUCKET='menu-images',FIXED_SECTIONS=['Mains','Bowls','Sides','Sauces','Desserts','Drinks'];
+const SUPA='https://uhautgiebtkvrxfsqabq.supabase.co',KEY='sb_publishable_XPAXC44lyPin89u8l_LdKw_3nLMlI9J',OWNER_EMAIL='fusionflavourkitchen@gmail.com',IMAGE_BUCKET='menu-images',FIXED_SECTIONS=['Mains','Bowls','Sides','Sauces','Desserts','Drinks','Blends'];
 let state={settings:null,categories:[],items:[]},basket=[],token=sessionStorage.getItem('ffOwnerToken')||'',currentOptionItem=null,submitting=false,orderKey=sessionStorage.getItem('ffOrderKey')||'',orderFilter='ongoing',dishTab='active',menuGroup='Mains',stockGroup='All',costTab='Ingredients',selectedRecipeId=null,ownerData={settings:null,categories:[],items:[],orders:[],stock:[],stockCategories:[],suppliers:[],supplierPrices:[],recipes:[],recipeIngredients:[],wasteLogs:[],labourLogs:[],businessCosts:[],salesTargets:[],cateringGallery:[],cateringInquiries:[],overheads:[],consumableRules:[],consumableUsage:[],dailyAdmin:[],deliverySlots:[],retailOrders:[]};
 const $=id=>document.getElementById(id),money=n=>'£'+Number(n||0).toFixed(2),esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#39;");
 async function api(path,opt={}){const r=await fetch(SUPA+path,{...opt,headers:{apikey:KEY,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...(opt.headers||{})}}),t=await r.text();let d;try{d=t?JSON.parse(t):null}catch{d=t}if(!r.ok)throw new Error(typeof d==='string'?d:(d?.message||d?.error_description||d?.hint||'Request failed'));return d}

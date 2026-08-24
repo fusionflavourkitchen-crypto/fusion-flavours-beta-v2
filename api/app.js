@@ -3,6 +3,10 @@ const path = require('path');
 
 module.exports = async function handler(req, res) {
   try {
+    if (req.method && !['GET', 'HEAD'].includes(req.method)) {
+      res.setHeader('Allow', 'GET, HEAD');
+      return res.status(405).send('Method Not Allowed');
+    }
     let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
     const openOwner = String(req.query && req.query.mode || '') === 'owner';
 
@@ -82,6 +86,13 @@ module.exports = async function handler(req, res) {
   }
 
   function harnellGroupFor(row){
+    // Harnell categories are stored in sort_order bands so they remain
+    // independent from the main delivery-menu category.
+    var sortOrder=Number(row && row.sort_order || 0);
+    if(sortOrder>=4000) return 'drinks';
+    if(sortOrder>=3000) return 'desserts';
+    if(sortOrder>=2000) return 'sides';
+    if(sortOrder>=1000) return 'mains';
     var categoryId=Number(row && row.items && row.items.category_id || 0);
     var category=String(harnellCategoryNames[categoryId]||'').trim().toLowerCase();
     var itemName=String((row&&row.items&&row.items.name)||row?.resident_name||'').toLowerCase();
@@ -94,8 +105,8 @@ module.exports = async function handler(req, res) {
 
     // Defensive fallback for any old/uncategorised item.
     if(/tzatziki|ezme|sauce|dip|rice|fries|pita|pitta|bread|salad/.test(itemName)) return 'sides';
-    if(/rubicon|coke|cola|sprite|fanta|water|juice|drink/.test(itemName)) return 'drinks';
-    if(/tiramisu|cake|brownie|dessert|baklava|sweet/.test(itemName)) return 'desserts';
+    if(/rubicon|coke|cola|sprite|fanta|water|juice|drink|lemonade/.test(itemName)) return 'drinks';
+    if(/tiramisu|cake|brownie|dessert|baklava|sweet|pudding|cookie|cheesecake/.test(itemName)) return 'desserts';
     return 'mains';
   }
 
@@ -197,6 +208,10 @@ module.exports = async function handler(req, res) {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.status(200).send(output);
   } catch (err) {
     console.error('Fusion Flavours app wrapper:', err);
