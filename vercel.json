@@ -6,6 +6,10 @@
   },
   "rewrites": [
     {
+      "source": "/owner",
+      "destination": "/api/app?mode=owner"
+    },
+    {
       "source": "/",
       "destination": "/api/app"
     }
