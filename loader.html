@@ -14,6 +14,51 @@
 
   html=html.replaceAll('Pouches / units available','Units available');
 
+  /* Install navigation handling immediately after BODY opens. This runs before
+     any later scripts can replace the Owner button's onclick handler. */
+  const earlyNav=`<script>
+(function(){
+  function hideViews(){
+    ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer','owner'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.classList.add('hidden');
+    });
+  }
+  document.addEventListener('click',function(e){
+    var target=e.target && e.target.closest ? e.target : null;
+    if(!target) return;
+    var ownerEntry=target.closest('#ownerEntry');
+    if(ownerEntry){
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      var header=document.getElementById('headerMenu'); if(header) header.classList.add('hidden');
+      hideViews();
+      var owner=document.getElementById('owner'); if(owner) owner.classList.remove('hidden');
+      var hasToken=(typeof token!=='undefined' && !!token);
+      var auth=document.getElementById('authPanel');
+      var dash=document.getElementById('dashboard');
+      if(hasToken && typeof openOwner==='function'){
+        try{ openOwner(); }catch(err){ console.error('Open Owner',err); }
+      }else{
+        if(auth) auth.classList.remove('hidden');
+        if(dash) dash.classList.add('hidden');
+      }
+      try{
+        var u=new URL(location.href); u.search=''; u.searchParams.set('view','owner');
+        history.replaceState({view:'owner'},'',u);
+      }catch(err){}
+      window.scrollTo(0,0);
+      return false;
+    }
+    var customerBtn=target.closest('#customerBtn');
+    if(customerBtn){
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      location.assign(location.pathname+'?view=home');
+      return false;
+    }
+  },true);
+})();
+<\/script>`;
+  html=html.replace('<body>','<body>\n'+earlyNav);
+
   /* Permanently reshape the Owner menu in the HTML that is about to run. */
   const serviceButton='<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>';
   const fusionButton='<button data-area="fusionhome" onclick="showOwnerArea(\'fusionhome\')">Fusion at Home</button>';
@@ -34,46 +79,9 @@
     "catering:'Catering',harnell:'Harnell',fusionhome:'Fusion at Home',service:'Service'"
   );
 
-  /* Final runtime guard: runs after the whole app has loaded and wins over later patches. */
+  /* Final runtime guard for the Owner menu. */
   const guard=`<script>
 (function(){
-  function hideAllTopLevel(){
-    ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer','owner'].forEach(function(id){
-      var el=document.getElementById(id);
-      if(el) el.classList.add('hidden');
-    });
-  }
-
-  function goOwner(){
-    try{
-      document.getElementById('headerMenu')?.classList.add('hidden');
-      hideAllTopLevel();
-      var owner=document.getElementById('owner');
-      if(owner) owner.classList.remove('hidden');
-      var u=new URL(location.href);
-      u.search='';
-      u.searchParams.set('view','owner');
-      history.replaceState({view:'owner'},'',u);
-      if(typeof token!=='undefined' && token && typeof openOwner==='function') openOwner();
-      window.scrollTo(0,0);
-    }catch(e){console.error('Owner navigation',e);}
-  }
-
-  function goHome(){
-    try{
-      document.getElementById('ownerNavMenu')?.classList.add('hidden');
-      hideAllTopLevel();
-      var welcome=document.getElementById('welcomeHub');
-      if(welcome) welcome.classList.remove('hidden');
-      if(typeof renderWelcomeHub==='function') renderWelcomeHub();
-      var u=new URL(location.href);
-      u.search='';
-      u.searchParams.set('view','home');
-      history.replaceState({view:'home'},'',u);
-      window.scrollTo(0,0);
-    }catch(e){console.error('Customer view navigation',e);}
-  }
-
   function forceFusionHomeTopLevel(){
     try{
       if(typeof OWNER_AREAS!=='undefined'){
@@ -89,7 +97,6 @@
         b.textContent='Fusion at Home';
         b.onclick=function(e){
           e.preventDefault();
-          forceFusionHomeTopLevel();
           menu.classList.add('hidden');
           if(typeof showOwnerArea==='function') showOwnerArea('fusionhome');
           else if(typeof showTab==='function') showTab('fusionhome');
@@ -99,34 +106,13 @@
       }
     }catch(e){console.error('Fusion at Home nav guard',e);}
   }
-
-  /* Delegated capture handlers survive any later menu rebuilds. */
-  document.addEventListener('click',function(e){
-    var ownerEntry=e.target.closest && e.target.closest('#ownerEntry');
-    if(ownerEntry){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      goOwner();
-      return;
-    }
-    var customerBtn=e.target.closest && e.target.closest('#customerBtn');
-    if(customerBtn){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      goHome();
-    }
-  },true);
-
-  window.goFusionOwner=goOwner;
-  window.goFusionHome=goHome;
-
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',forceFusionHomeTopLevel); else forceFusionHomeTopLevel();
   setTimeout(forceFusionHomeTopLevel,100);
   setTimeout(forceFusionHomeTopLevel,500);
   setTimeout(forceFusionHomeTopLevel,1500);
 })();
 <\/script>`;
-  html=html.replace('</body>',guard+'\n</body>');
+  html=html.replace(/<\/body>\s*<\/html>\s*$/,guard+'\n</body></html>');
 
   document.open();
   document.write(html);
