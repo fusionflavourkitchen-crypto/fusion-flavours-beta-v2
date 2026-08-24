@@ -3,12 +3,19 @@ const path = require('path');
 
 module.exports = async function handler(req, res) {
   try {
-    const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+    let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
     const openOwner = String(req.query && req.query.mode || '') === 'owner';
 
-    // Keep the original Owner Dashboard button in the page so the legacy app
-    // does not lose #ownerEntry. A final capture-phase handler below becomes
-    // the single authority for switching into and out of the owner view.
+    // Make the visible Owner Dashboard control a plain server route. This bypasses
+    // all legacy client-side owner click handlers. Keep a hidden #ownerEntry in
+    // the DOM so the old scripts that reference it do not throw errors.
+    const legacyOwnerButton = '<button id="ownerEntry">⚙ Owner Dashboard</button>';
+    const directOwnerLink = '<a id="ownerDirectEntry" href="/owner" style="display:block;width:100%;text-align:left;background:transparent;color:#222;padding:11px 14px;font-weight:850;text-decoration:none;border-radius:12px">⚙ Owner Dashboard</a><button id="ownerEntry" type="button" style="display:none!important" aria-hidden="true" tabindex="-1">⚙ Owner Dashboard</button>';
+    if (html.includes(legacyOwnerButton)) {
+      html = html.replace(legacyOwnerButton, directOwnerLink);
+    }
+
+    // Final navigation guard for the owner screen and Customer View button.
     const navFix = `
 <script>
 (function(){
@@ -66,7 +73,7 @@ module.exports = async function handler(req, res) {
     window.scrollTo(0,0);
   }
 
-  // Capture the Owner click before any of the older click handlers can run.
+  // Fallback for any legacy #ownerEntry activation.
   document.addEventListener('click',function(e){
     var t=e.target && e.target.closest ? e.target.closest('#ownerEntry') : null;
     if(!t) return;
