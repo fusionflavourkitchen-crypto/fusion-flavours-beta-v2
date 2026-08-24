@@ -6,13 +6,11 @@ module.exports = async function handler(req, res) {
     let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
     const openOwner = String(req.query && req.query.mode || '') === 'owner';
 
-    /* Do not use #ownerEntry here. The legacy app contains several different
-       scripts that keep overwriting that element's onclick handler. Replace
-       the control with a normal link using a new id so none of those old
-       handlers can touch it. */
+    // Replace the legacy Owner button with a plain browser link. This has no
+    // JavaScript click dependency and cannot be overwritten by old handlers.
     html = html.replace(
       '<button id="ownerEntry">⚙ Owner Dashboard</button>',
-      '<a id="ownerDirectLink" href="/api/app?mode=owner" style="display:block;padding:10px 12px;color:#f4efe9;text-decoration:none;font-weight:800">⚙ Owner Dashboard</a>'
+      '<a href="/owner" style="display:block;padding:10px 12px;color:#f4efe9;text-decoration:none;font-weight:800">⚙ Owner Dashboard</a>'
     );
 
     const navFix = `
@@ -47,21 +45,16 @@ module.exports = async function handler(req, res) {
       if(auth) auth.classList.remove('hidden');
       if(dash) dash.classList.add('hidden');
     }
-    /* Remove the owner route immediately. A browser refresh therefore loads
-       the normal / route and returns a customer to Welcome. */
-    try{ history.replaceState({},'', '/'); }catch(e){}
     window.scrollTo(0,0);
   }
 
-  /* Customer View must always return to Welcome. Capture phase prevents the
-     legacy customerBtn handlers from sending the user to a blank section. */
   document.addEventListener('click',function(e){
     var t=e.target && e.target.closest ? e.target.closest('#customerBtn') : null;
     if(!t) return;
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
-    showWelcome();
+    location.href='/';
   },true);
 
   if(${openOwner ? 'true' : 'false'}) showOwner();
@@ -71,7 +64,8 @@ module.exports = async function handler(req, res) {
 
     html = html.replace(/<\/body>\s*<\/html>\s*$/i, navFix + '\n</body></html>');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
     res.status(200).send(html);
   } catch (err) {
     console.error('Fusion Flavours app wrapper:', err);
