@@ -4,6 +4,16 @@ const path = require('path');
 module.exports = async function handler(req, res) {
   try {
     let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
+    const openOwner = String(req.query && req.query.mode || '') === 'owner';
+
+    /* Do not use #ownerEntry here. The legacy app contains several different
+       scripts that keep overwriting that element's onclick handler. Replace
+       the control with a normal link using a new id so none of those old
+       handlers can touch it. */
+    html = html.replace(
+      '<button id="ownerEntry">⚙ Owner Dashboard</button>',
+      '<a id="ownerDirectLink" href="/api/app?mode=owner" style="display:block;padding:10px 12px;color:#f4efe9;text-decoration:none;font-weight:800">⚙ Owner Dashboard</a>'
+    );
 
     const navFix = `
 <script>
@@ -14,59 +24,48 @@ module.exports = async function handler(req, res) {
       var el=byId(id); if(el) el.classList.add('hidden');
     });
   }
-  function cleanViewFromUrl(){
-    try{
-      var u=new URL(location.href);
-      u.searchParams.delete('view');
-      history.replaceState({},'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash);
-    }catch(e){}
-  }
   function showWelcome(){
     hideTop();
     var w=byId('welcomeHub'); if(w) w.classList.remove('hidden');
     var hm=byId('headerMenu'); if(hm) hm.classList.add('hidden');
-    cleanViewFromUrl();
-    try{ if(typeof renderWelcomeHub==='function') renderWelcomeHub(); }catch(e){ console.error('Welcome render',e); }
+    try{ if(typeof renderWelcomeHub==='function') renderWelcomeHub(); }catch(e){}
     window.scrollTo(0,0);
   }
   function showOwner(){
     hideTop();
     var hm=byId('headerMenu'); if(hm) hm.classList.add('hidden');
     var owner=byId('owner'); if(owner) owner.classList.remove('hidden');
-    cleanViewFromUrl();
+    var auth=byId('authPanel');
+    var dash=byId('dashboard');
     try{
-      if(typeof token!=='undefined' && token && typeof openOwner==='function'){
-        openOwner();
-      }else{
-        var auth=byId('authPanel'); if(auth) auth.classList.remove('hidden');
-        var dash=byId('dashboard'); if(dash) dash.classList.add('hidden');
+      if(typeof token!=='undefined' && token && typeof openOwner==='function') openOwner();
+      else {
+        if(auth) auth.classList.remove('hidden');
+        if(dash) dash.classList.add('hidden');
       }
-    }catch(e){ console.error('Owner open',e); }
+    }catch(e){
+      if(auth) auth.classList.remove('hidden');
+      if(dash) dash.classList.add('hidden');
+    }
+    /* Remove the owner route immediately. A browser refresh therefore loads
+       the normal / route and returns a customer to Welcome. */
+    try{ history.replaceState({},'', '/'); }catch(e){}
     window.scrollTo(0,0);
   }
 
+  /* Customer View must always return to Welcome. Capture phase prevents the
+     legacy customerBtn handlers from sending the user to a blank section. */
   document.addEventListener('click',function(e){
-    var t=e.target && e.target.closest ? e.target : null;
+    var t=e.target && e.target.closest ? e.target.closest('#customerBtn') : null;
     if(!t) return;
-    if(t.closest('#ownerEntry')){
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      showOwner();
-      return false;
-    }
-    if(t.closest('#customerBtn')){
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      showWelcome();
-      return false;
-    }
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    showWelcome();
   },true);
 
-  // Every fresh load or browser refresh starts at the customer Welcome page.
-  showWelcome();
-  window.addEventListener('pageshow',function(e){ if(e.persisted) showWelcome(); });
+  if(${openOwner ? 'true' : 'false'}) showOwner();
+  else showWelcome();
 })();
 </script>`;
 
