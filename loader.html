@@ -37,6 +37,43 @@
   /* Final runtime guard: runs after the whole app has loaded and wins over later patches. */
   const guard=`<script>
 (function(){
+  function hideAllTopLevel(){
+    ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer','owner'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el) el.classList.add('hidden');
+    });
+  }
+
+  function goOwner(){
+    try{
+      document.getElementById('headerMenu')?.classList.add('hidden');
+      hideAllTopLevel();
+      var owner=document.getElementById('owner');
+      if(owner) owner.classList.remove('hidden');
+      var u=new URL(location.href);
+      u.search='';
+      u.searchParams.set('view','owner');
+      history.replaceState({view:'owner'},'',u);
+      if(typeof token!=='undefined' && token && typeof openOwner==='function') openOwner();
+      window.scrollTo(0,0);
+    }catch(e){console.error('Owner navigation',e);}
+  }
+
+  function goHome(){
+    try{
+      document.getElementById('ownerNavMenu')?.classList.add('hidden');
+      hideAllTopLevel();
+      var welcome=document.getElementById('welcomeHub');
+      if(welcome) welcome.classList.remove('hidden');
+      if(typeof renderWelcomeHub==='function') renderWelcomeHub();
+      var u=new URL(location.href);
+      u.search='';
+      u.searchParams.set('view','home');
+      history.replaceState({view:'home'},'',u);
+      window.scrollTo(0,0);
+    }catch(e){console.error('Customer view navigation',e);}
+  }
+
   function forceFusionHomeTopLevel(){
     try{
       if(typeof OWNER_AREAS!=='undefined'){
@@ -54,13 +91,35 @@
           e.preventDefault();
           forceFusionHomeTopLevel();
           menu.classList.add('hidden');
-          if(typeof showTab==='function') showTab('fusionhome');
+          if(typeof showOwnerArea==='function') showOwnerArea('fusionhome');
+          else if(typeof showTab==='function') showTab('fusionhome');
         };
         var service=menu.querySelector('button[data-area="service"]');
         if(service) menu.insertBefore(b,service); else menu.appendChild(b);
       }
     }catch(e){console.error('Fusion at Home nav guard',e);}
   }
+
+  /* Delegated capture handlers survive any later menu rebuilds. */
+  document.addEventListener('click',function(e){
+    var ownerEntry=e.target.closest && e.target.closest('#ownerEntry');
+    if(ownerEntry){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      goOwner();
+      return;
+    }
+    var customerBtn=e.target.closest && e.target.closest('#customerBtn');
+    if(customerBtn){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      goHome();
+    }
+  },true);
+
+  window.goFusionOwner=goOwner;
+  window.goFusionHome=goHome;
+
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',forceFusionHomeTopLevel); else forceFusionHomeTopLevel();
   setTimeout(forceFusionHomeTopLevel,100);
   setTimeout(forceFusionHomeTopLevel,500);
