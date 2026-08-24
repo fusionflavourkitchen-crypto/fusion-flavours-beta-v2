@@ -13,40 +13,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch Harnell save fields
+      - name: Ensure Harnell category controls render immediately
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           text=p.read_text()
-          marker='/* ===== v4.4 FIX HARNELL SAVE FIELDS ===== */'
+          marker='/* ===== v4.5 HARNELL CATEGORY INITIAL RENDER ===== */'
           if marker in text:
               print('Patch already present')
               raise SystemExit(0)
           patch=r'''
           <script>
-          /* ===== v4.4 FIX HARNELL SAVE FIELDS ===== */
-          window.saveHarnellDish=async id=>{
+          /* ===== v4.5 HARNELL CATEGORY INITIAL RENDER ===== */
+          function ensureHarnellCategoryControls(){
             try{
-              const row=(ownerData.harnellMenu||[]).find(x=>Number(x.id)===Number(id));
-              const cat=$('har_cat_'+id)?.value||harnellCategoryFromSort(row);
-              await api('/rest/v1/harnell_menu_items?id=eq.'+id,{
-                method:'PATCH',
-                headers:{Prefer:'return=minimal'},
-                body:JSON.stringify({
-                  resident_price_pence:Math.round(Number($('har_price_'+id).value||0)*100),
-                  active:$('har_active_'+id).checked,
-                  sort_order:harnellEncodedSort(row,cat),
-                  variant_name:($('har_variant_name_'+id)?.value||'').trim()||null,
-                  variant_description:($('har_variant_desc_'+id)?.value||'').trim()||null,
-                  portion_multiplier:Math.max(.5,Math.min(1.5,Number($('har_multiplier_'+id)?.value||1))),
-                  updated_at:new Date().toISOString()
-                })
-              });
-              await loadHarnellOwnerData();renderHarnellAdmin();
-              if(typeof showToast==='function')showToast();
-            }catch(e){alert(e.message)}
-          };
+              if(typeof injectHarnellCategoryControls==='function') injectHarnellCategoryControls();
+            }catch(e){ console.warn('Harnell category controls:',e); }
+          }
+          if(document.readyState==='loading'){
+            document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureHarnellCategoryControls,0),{once:true});
+          }else{
+            setTimeout(ensureHarnellCategoryControls,0);
+          }
           </script>
           '''
           if '</body>' not in text:
@@ -64,5 +53,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Preserve Harnell dish fields when saving category"
+          git commit -m "Ensure Harnell category controls render immediately"
           git push
