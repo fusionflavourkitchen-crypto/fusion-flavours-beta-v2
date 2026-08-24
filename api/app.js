@@ -1,11 +1,9 @@
+const fs = require('fs');
+const path = require('path');
+
 module.exports = async function handler(req, res) {
   try {
-    const host = req.headers['x-forwarded-host'] || req.headers.host;
-    const proto = req.headers['x-forwarded-proto'] || 'https';
-    const sourceUrl = `${proto}://${host}/index.html?source=${Date.now()}`;
-    const source = await fetch(sourceUrl, { cache: 'no-store' });
-    if (!source.ok) throw new Error(`index.html returned ${source.status}`);
-    let html = await source.text();
+    let html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
 
     const navFix = `
 <script>
@@ -66,7 +64,7 @@ module.exports = async function handler(req, res) {
     }
   },true);
 
-  // A browser load/refresh is always customer-safe and starts at Welcome.
+  // Every fresh load or browser refresh starts at the customer Welcome page.
   showWelcome();
   window.addEventListener('pageshow',function(e){ if(e.persisted) showWelcome(); });
 })();
@@ -77,7 +75,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.status(200).send(html);
   } catch (err) {
-    console.error(err);
+    console.error('Fusion Flavours app wrapper:', err);
     res.status(500).send('<!doctype html><html><body><h2>Fusion Flavours</h2><p>The app could not load. Please refresh.</p></body></html>');
   }
 };
