@@ -4290,4 +4290,94 @@ routeCustomerView=function(){
 })();
 </script>
 
+
+<script>
+/* ===== v4.3 HARNELL OWNER-CONTROLLED CATEGORIES ===== */
+const HARNELL_CATEGORY_BASE={mains:1000,sides:2000,desserts:3000,drinks:4000};
+const HARNELL_CATEGORY_LABEL={mains:'Mains',sides:'Sides',desserts:'Desserts',drinks:'Drinks'};
+const HARNELL_CATEGORY_ORDER=['mains','sides','desserts','drinks'];
+
+function harnellCategoryFromSort(r){
+  const n=Number(r?.sort_order||0);
+  if(n>=4000)return 'drinks';
+  if(n>=3000)return 'desserts';
+  if(n>=2000)return 'sides';
+  if(n>=1000)return 'mains';
+  const name=String(harnellDisplayName(r)||'').toLowerCase();
+  if(/drink|coke|cola|sprite|fanta|water|juice|lemonade/.test(name))return 'drinks';
+  if(/dessert|cake|brownie|baklava|pudding|cookie|cheesecake|sweet/.test(name))return 'desserts';
+  if(/tzatziki|ezme|sauce|dip|rice|fries|chips|pita|bread|salad|side/.test(name))return 'sides';
+  return 'mains';
+}
+function harnellEncodedSort(row,cat){
+  const base=HARNELL_CATEGORY_BASE[cat]||1000;
+  const current=Number(row?.sort_order||0);
+  let pos=current>=1000?(current%1000):Math.max(1,(ownerData.harnellMenu||[]).findIndex(x=>Number(x.id)===Number(row?.id))+1);
+  if(!pos||pos>=1000)pos=Number(row?.id||1)%999||1;
+  return base+pos;
+}
+function harnellCategoryOptions(selected){
+  return HARNELL_CATEGORY_ORDER.map(k=>`<option value="${k}" ${k===selected?'selected':''}>${HARNELL_CATEGORY_LABEL[k]}</option>`).join('');
+}
+function injectHarnellCategoryControls(){
+  const p=$('page-harnell');if(!p)return;
+  const addPrice=$('har_add_price');
+  if(addPrice&&!$('har_add_cat')){
+    const label=addPrice.closest('label');
+    label?.insertAdjacentHTML('afterend',`<label>Harnell category<select id="har_add_cat">${harnellCategoryOptions('mains')}</select></label>`);
+  }
+  (ownerData.harnellMenu||[]).forEach(row=>{
+    if($('har_cat_'+row.id))return;
+    const price=$('har_price_'+row.id);if(!price)return;
+    const label=price.closest('label');
+    const cat=harnellCategoryFromSort(row);
+    label?.insertAdjacentHTML('afterend',`<label>Harnell category<select id="har_cat_${row.id}">${harnellCategoryOptions(cat)}</select></label>`);
+  });
+}
+
+const renderHarnellAdminV43=renderHarnellAdmin;
+renderHarnellAdmin=function(){
+  const r=renderHarnellAdminV43();
+  injectHarnellCategoryControls();
+  return r;
+};
+
+window.addHarnellDish=async()=>{
+  try{
+    const itemId=Number($('har_add_item').value||0),price=Math.round(Number($('har_add_price').value||0)*100);
+    if(!itemId)return alert('Choose a dish.');
+    const cat=$('har_add_cat')?.value||'mains';
+    const sameCat=(ownerData.harnellMenu||[]).filter(x=>harnellCategoryFromSort(x)===cat);
+    const sort_order=(HARNELL_CATEGORY_BASE[cat]||1000)+Math.min(999,sameCat.length+1);
+    await api('/rest/v1/harnell_menu_items?on_conflict=item_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({item_id:itemId,resident_price_pence:price,active:true,sort_order})});
+    await loadHarnellOwnerData();renderHarnellAdmin();
+  }catch(e){alert(e.message)}
+};
+
+window.saveHarnellDish=async id=>{
+  try{
+    const row=(ownerData.harnellMenu||[]).find(x=>Number(x.id)===Number(id));
+    const cat=$('har_cat_'+id)?.value||harnellCategoryFromSort(row);
+    await api('/rest/v1/harnell_menu_items?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({resident_price_pence:Math.round(Number($('har_price_'+id).value||0)*100),active:$('har_active_'+id).checked,sort_order:harnellEncodedSort(row,cat),updated_at:new Date().toISOString()})});
+    await loadHarnellOwnerData();renderHarnellAdmin();
+    if(typeof showToast==='function')showToast();
+  }catch(e){alert(e.message)}
+};
+
+renderHarnellCustomer=function(){
+  const s=state.settings||{};
+  $('harnellTitle').textContent=s.harnell_title||'Harnell House Menu';
+  $('harnellSubtitle').textContent=s.harnell_subtitle||'Simple, affordable meals for residents';
+  const hWindow=`${String(s.harnell_delivery_start||'18:00').slice(0,5)}–${String(s.harnell_delivery_end||'20:00').slice(0,5)}`;
+  $('harnellStatus').innerHTML=(harnellOpen()?`<b>🟢 Resident ordering open</b> · Order by ${String(s.harnell_cutoff_time||'15:00').slice(0,5)}`:`<b>🔴 Resident ordering closed</b> · Cutoff ${String(s.harnell_cutoff_time||'15:00').slice(0,5)}`)+`<br><b>🚪 Delivery window:</b> ${esc(hWindow)}`;
+  const dishHtml=r=>`<article class="harnellDish">${r.items?.image_url?`<img class="recipeThumb" src="${esc(r.items.image_url)}" alt="${esc(harnellDisplayName(r))}">`:''}<span class="harnellVariantBadge">HARNELL</span><h3>${esc(harnellDisplayName(r))}</h3><p class="muted">${esc(harnellDisplayDescription(r))}</p>${Number(r.portion_multiplier||1)!==1?`<div class="muted">Resident portion · ${Math.round(harnellPortionMultiplier(r)*100)}% of standard recipe</div>`:''}<div class="row"><span class="harnellPrice">${money(Number(r.resident_price_pence||0)/100)}</span><button ${!harnellOpen()||Number(r.items?.stock||0)<=0?'disabled':''} onclick="addHarnellItem(${r.item_id})">${Number(r.items?.stock||0)<=0?'Sold out':'Add'}</button></div></article>`;
+  const grouped=HARNELL_CATEGORY_ORDER.map(cat=>{
+    const rows=harnellMenuRows.filter(r=>harnellCategoryFromSort(r)===cat);
+    return `<section class="harnellCategorySection"><h2 class="sectionTitle">${HARNELL_CATEGORY_LABEL[cat]}</h2><div class="harnellMenuGrid">${rows.map(dishHtml).join('')||'<div class="notice">No dishes in this section yet.</div>'}</div></section>`;
+  }).join('');
+  $('harnellMenu').innerHTML=grouped||'<div class="notice">No Harnell dishes are available yet.</div>';
+  renderHarnellBasket();
+};
+</script>
+
 </body></html>
