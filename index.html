@@ -478,7 +478,7 @@ input,textarea,select{width:100%;padding:12px;border:1px solid #d8cabc;border-ra
 @media(max-width:720px){.fusionAtHomeWelcome{grid-template-columns:1fr}.fusionAtHomeWelcome button{width:100%}}
 </style>
 <script>
-(function(){
+ (function(){
   const v=new URLSearchParams(location.search).get('view')||'home';
   document.documentElement.setAttribute('data-initial-view',v);
 })();
@@ -4565,7 +4565,7 @@ renderHarnellCustomer=function(){
 </style>
 <script>
 /* Connected owner refund centre: Stripe action, audit history and net finance figures. */
-(function(){
+try{(function(){
   const baseLoadOwnerData=loadOwnerData;
   loadOwnerData=async function(){
     await baseLoadOwnerData();
@@ -4642,7 +4642,7 @@ renderHarnellCustomer=function(){
   pnlReportForSelection=function(){const report=basePnlReport(),d=selectedPnlData().data;report.lines.splice(1,0,{label:'Refunds deducted',value:'-'+money(Number(d.refundTotal||0))});report.notes+=' Successful refunds are deducted once from sales and net profit.';return report};
   const baseActualSales=actualSalesForTarget;
   actualSalesForTarget=function(date,mode){const start=mode==='weekly'?mondayOf(date):date,end=mode==='weekly'?addDays(start,6):start;const refunds=(ownerData.refunds||[]).filter(r=>r.status==='succeeded'&&inDateRange(r.processed_at||r.requested_at,start,end)).reduce((n,r)=>n+Number(r.amount_pence||0),0)/100;return baseActualSales(date,mode)+grossRefundedOrdersInRange(start,end)-refunds};
-})();
+})();}catch(e){console.error('Refund module failed:',e)}
 </script>
 
 </body></html>
