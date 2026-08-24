@@ -4455,14 +4455,14 @@ const HARNELL_NATIVE_LABELS={mains:'Mains',sides:'Sides',desserts:'Desserts',dri
 const HARNELL_NATIVE_BASE={mains:1000,sides:2000,desserts:3000,drinks:4000};
 
 function harnellNativeCategory(row){
+  const name=String(harnellDisplayName(row)||'').toLowerCase();
+  if(/rubicon|drink|coke|cola|sprite|fanta|water|juice|lemonade/.test(name))return 'drinks';
+  if(/tiramisu|dessert|cake|brownie|baklava|pudding|cookie|cheesecake|sweet/.test(name))return 'desserts';
   const n=Number(row?.sort_order||0);
   if(n>=4000)return 'drinks';
   if(n>=3000)return 'desserts';
   if(n>=2000)return 'sides';
   if(n>=1000)return 'mains';
-  const name=String(harnellDisplayName(row)||'').toLowerCase();
-  if(/drink|coke|cola|sprite|fanta|water|juice|lemonade/.test(name))return 'drinks';
-  if(/dessert|cake|brownie|baklava|pudding|cookie|cheesecake|sweet/.test(name))return 'desserts';
   if(/tzatziki|ezme|sauce|dip|rice|fries|chips|pita|bread|salad|side/.test(name))return 'sides';
   return 'mains';
 }
