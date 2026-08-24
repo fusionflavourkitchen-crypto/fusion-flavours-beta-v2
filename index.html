@@ -4406,4 +4406,19 @@ window.saveHarnellDish=async id=>{
 };
 </script>
 
+
+<script>
+/* ===== v4.5 HARNELL CATEGORY INITIAL RENDER ===== */
+function ensureHarnellCategoryControls(){
+  try{
+    if(typeof injectHarnellCategoryControls==='function') injectHarnellCategoryControls();
+  }catch(e){ console.warn('Harnell category controls:',e); }
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureHarnellCategoryControls,0),{once:true});
+}else{
+  setTimeout(ensureHarnellCategoryControls,0);
+}
+</script>
+
 </body></html>
