@@ -98,15 +98,15 @@ module.exports = async function handler(req, res) {
     var itemName=String((row&&row.items&&row.items.name)||row?.resident_name||'').toLowerCase();
 
     // Use the real live category name rather than hard-coded database IDs.
+    // Specific category and product signals take priority over an inherited
+    // main-menu category on older Harnell rows.
     if(category.includes('drink')) return 'drinks';
     if(category.includes('dessert') || category.includes('sweet')) return 'desserts';
     if(category.includes('side') || category.includes('sauce')) return 'sides';
-    if(category.includes('main') || category.includes('bowl') || category.includes('special')) return 'mains';
-
-    // Defensive fallback for any old/uncategorised item.
     if(/tzatziki|ezme|sauce|dip|rice|fries|pita|pitta|bread|salad/.test(itemName)) return 'sides';
     if(/rubicon|coke|cola|sprite|fanta|water|juice|drink|lemonade/.test(itemName)) return 'drinks';
     if(/tiramisu|cake|brownie|dessert|baklava|sweet|pudding|cookie|cheesecake/.test(itemName)) return 'desserts';
+    if(category.includes('main') || category.includes('bowl') || category.includes('special')) return 'mains';
     return 'mains';
   }
 
