@@ -86,6 +86,10 @@ module.exports = async function handler(req, res) {
   }
 
   function harnellGroupFor(row){
+    var itemName=String((row&&row.resident_name)||(row&&row.items&&row.items.name)||'').toLowerCase();
+    // Correct recognisable legacy products before reading old sort bands.
+    if(/rubicon|coke|cola|sprite|fanta|water|juice|drink|lemonade/.test(itemName)) return 'drinks';
+    if(/tiramisu|cake|brownie|dessert|baklava|sweet|pudding|cookie|cheesecake/.test(itemName)) return 'desserts';
     // Harnell categories are stored in sort_order bands so they remain
     // independent from the main delivery-menu category.
     var sortOrder=Number(row && row.sort_order || 0);
@@ -95,7 +99,6 @@ module.exports = async function handler(req, res) {
     if(sortOrder>=1000) return 'mains';
     var categoryId=Number(row && row.items && row.items.category_id || 0);
     var category=String(harnellCategoryNames[categoryId]||'').trim().toLowerCase();
-    var itemName=String((row&&row.items&&row.items.name)||row?.resident_name||'').toLowerCase();
 
     // Use the real live category name rather than hard-coded database IDs.
     // Specific category and product signals take priority over an inherited
@@ -104,8 +107,6 @@ module.exports = async function handler(req, res) {
     if(category.includes('dessert') || category.includes('sweet')) return 'desserts';
     if(category.includes('side') || category.includes('sauce')) return 'sides';
     if(/tzatziki|ezme|sauce|dip|rice|fries|pita|pitta|bread|salad/.test(itemName)) return 'sides';
-    if(/rubicon|coke|cola|sprite|fanta|water|juice|drink|lemonade/.test(itemName)) return 'drinks';
-    if(/tiramisu|cake|brownie|dessert|baklava|sweet|pudding|cookie|cheesecake/.test(itemName)) return 'desserts';
     if(category.includes('main') || category.includes('bowl') || category.includes('special')) return 'mains';
     return 'mains';
   }
