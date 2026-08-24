@@ -2,20 +2,23 @@
   "functions": {
     "api/app.js": {
       "includeFiles": "index.html"
+    },
+    "api/app-v2.js": {
+      "includeFiles": "index.html"
     }
   },
   "rewrites": [
     {
       "source": "/owner",
-      "destination": "/api/app?mode=owner"
+      "destination": "/api/app-v2?mode=owner"
     },
     {
       "source": "/index.html",
-      "destination": "/api/app"
+      "destination": "/api/app-v2"
     },
     {
       "source": "/",
-      "destination": "/api/app"
+      "destination": "/api/app-v2"
     }
   ]
 }
