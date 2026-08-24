@@ -1,0 +1,92 @@
+--- a/index.html
++++ b/index.html
+@@ -750,6 +750,14 @@
+ 
+ let retailBasket=JSON.parse(sessionStorage.getItem('ffRetailBasket')||'[]'),retailSettings=null,retailSubmitting=false;
+ const RETAIL_INGREDIENTS='Smoked Paprika, Oregano, Garlic Powder, Onion Powder, Salt, Sumac, Dried Mint, Lemon Powder, Black Pepper, Coriander, Chilli Flakes, Cumin, Cinnamon.';
++function retailProductIngredients(i){
++  const v=i?.options_config?.retail_ingredients;
++  return String(v||RETAIL_INGREDIENTS).trim();
++}
++function retailProductNetWeight(i){
++  const n=Number(i?.options_config?.retail_net_weight_g||100);
++  return Number.isFinite(n)&&n>0?Math.round(n):100;
++}
+ 
+ function saveRetailBasket(){sessionStorage.setItem('ffRetailBasket',JSON.stringify(retailBasket))}
+ function retailItems(){const c=state.categories.find(x=>String(x.name).toLowerCase()==='fusion at home');return c?state.items.filter(i=>Number(i.category_id)===Number(c.id)&&i.active):[]}
+@@ -771,7 +779,8 @@
+   else if(pay==='retail_cancelled') status='<div class="notice"><b>Payment was cancelled.</b> Your basket has been kept so you can try again.</div>';
+   $('retailProducts').innerHTML=status+(products.map(i=>{
+     const stock=Number(i.stock||0),out=stock<=0;
+-    return `<article class="retailProductCard">${i.image_url?`<img src="${esc(i.image_url)}" alt="${esc(i.name)}">`:'<div class="retailProductPlaceholder">🔥</div>'}<div class="retailProductBody"><div class="row"><span class="cat">Fusion at Home</span><span class="retailProductPrice">${money(i.price)}</span></div><h3>${esc(i.name)}</h3><p>${esc(i.description||'Fusion Flavours product for your own kitchen.')}</p>${String(i.name).toLowerCase().includes('blend')?`<div class="retailIngredients"><b>Ingredients:</b> ${RETAIL_INGREDIENTS}<br><b>Net weight:</b> 100g</div>`:''}<div class="retailStock">${out?'Currently sold out':`${stock} available`}</div><button style="width:100%" ${out?'disabled':''} onclick="addRetailItem(${i.id})">${out?'Sold out':'Add to postal basket'}</button></div></article>`;
++    const ing=retailProductIngredients(i),net=retailProductNetWeight(i);
++    return `<article class="retailProductCard">${i.image_url?`<img src="${esc(i.image_url)}" alt="${esc(i.name)}">`:'<div class="retailProductPlaceholder">🔥</div>'}<div class="retailProductBody"><div class="row"><span class="cat">Fusion at Home</span><span class="retailProductPrice">${money(i.price)}</span></div><h3>${esc(i.name)}</h3><p>${esc(i.description||'Fusion Flavours product for your own kitchen.')}</p>${ing?`<div class="retailIngredients"><b>Ingredients:</b> ${esc(ing)}<br><b>Net weight:</b> ${net}g</div>`:''}<div class="retailStock">${out?'Currently sold out':`${stock} available`}</div><button style="width:100%" ${out?'disabled':''} onclick="addRetailItem(${i.id})">${out?'Sold out':'Add to postal basket'}</button></div></article>`;
+   }).join('')||'<div class="notice">Fusion at Home products are coming soon.</div>');
+   renderRetailBasket();
+   if(pay==='retail_success'){retailBasket=[];saveRetailBasket();renderRetailBasket();history.replaceState({},'',routeUrl('fusionhome'))}
+@@ -3479,8 +3488,10 @@
+   const q=new URLSearchParams(location.search),v=q.get('view')||'home';
+   hideTopLevelViewsV383();
+   if(v==='owner'){
++    document.documentElement.removeAttribute('data-initial-view');
+     $('owner')?.classList.remove('hidden');
+     if(token)openOwner();
++    else{$('authPanel')?.classList.remove('hidden');$('dashboard')?.classList.add('hidden')}
+   }else if(v==='delivery'){
+     $('customer')?.classList.remove('hidden');
+     renderCustomer();
+@@ -3861,9 +3872,14 @@
+   requestAnimationFrame(()=>{
+     window.scrollTo(0,0);
+     document.documentElement.classList.remove('ff-booting');
++    /* Initial-route flash protection is only for first paint.
++       Remove it once the app is hydrated so Owner / Delivery / other routes
++       can hide the Welcome Hub normally. */
++    document.documentElement.removeAttribute('data-initial-view');
+   });
+ }).catch(e=>{
+   document.documentElement.classList.remove('ff-booting');
++  document.documentElement.removeAttribute('data-initial-view');
+   alert('Could not load live menu: '+e.message);
+ });
+ </script>
+@@ -4216,14 +4232,14 @@
+     page.innerHTML=`<div class="fusionHomeHero"><h2>📦 Fusion at Home</h2><p>Manage the postal shop, product prices, packaging cost and postage. Product sales feed into P&amp;L / Performance automatically.</p></div>
+     <div class="retailKpis"><div class="retailKpi">${paid.length}<small>Paid postal orders</small></div><div class="retailKpi">${money(rev)}<small>Product sales</small></div><div class="retailKpi">${money(cost)}<small>Product cost</small></div><div class="retailKpi">${rev?((rev-cost)/rev*100).toFixed(1):'0.0'}%<small>Retail GP</small></div></div>
+     <div class="panel"><h2>Postal settings</h2><label class="switch"><input id="fh_enabled" type="checkbox" ${d.settings?.enabled?'checked':''}> Postal shop open</label><label>Postage name<input id="fh_post_label" value="${esc(d.settings?.postage_label||'Standard UK Postage')}"></label><div class="split"><label>Postage charge £<input id="fh_postage" type="number" step=".01" min="0" value="${(Number(d.settings?.postage_pence||0)/100).toFixed(2)}"></label><label>Free postage from £<input id="fh_freepost" type="number" step=".01" min="0" value="${(Number(d.settings?.free_postage_threshold_pence||0)/100).toFixed(2)}"></label></div><label>Dispatch message<input id="fh_dispatch" value="${esc(d.settings?.dispatch_note||'')}"></label><button style="width:100%" onclick="saveRetailSettings()">Save postal settings</button></div>
+-    <div class="panel" style="margin-top:12px"><div class="row"><h2>Products</h2><button onclick="addRetailProduct()">+ Add product</button></div>${items.map(i=>{const ps=map[i.id]||{};const r=ownerData.recipes.find(r=>Number(r.item_id)===Number(i.id));const recipeCost=r?ownerData.recipeIngredients.filter(x=>Number(x.recipe_id)===Number(r.id)).reduce((n,x)=>n+Number(x.quantity||0)*Number(ownerData.stock.find(s=>Number(s.id)===Number(x.stock_item_id))?.cost_per_unit||0),0):0;const totalCost=recipeCost+Number(ps.packaging_cost_pence||0)/100;const gp=Number(i.price_pence||0)>0?(1-totalCost/(Number(i.price_pence)/100))*100:0;return `<div class="retailOwnerProduct"><div class="row"><b>${esc(i.name)}</b><b>${money(Number(i.price_pence||0)/100)}</b></div><label>Name<input id="fh_name_${i.id}" value="${esc(i.name)}"></label><label>Description<textarea id="fh_desc_${i.id}">${esc(i.description||'')}</textarea></label><div class="split"><label>Price £<input id="fh_price_${i.id}" type="number" step=".01" min="0" value="${(Number(i.price_pence||0)/100).toFixed(2)}"></label><label>Pouches / units available<input id="fh_stock_${i.id}" type="number" min="0" step="1" value="${Number(i.stock||0)}"></label></div><div class="split"><label>Packaging cost per unit £<input id="fh_pack_${i.id}" type="number" step=".01" min="0" value="${(Number(ps.packaging_cost_pence||0)/100).toFixed(2)}"></label><label>Postal weight g<input id="fh_weight_${i.id}" type="number" step="1" min="1" value="${Number(ps.postal_weight_g||120)}"></label></div><label class="switch"><input id="fh_active_${i.id}" type="checkbox" ${i.active?'checked':''}> Available in postal shop</label><div class="notice"><b>Costing:</b> Linked recipe ${r?esc(r.name):'not linked'} · ingredients ${money(recipeCost)} + packaging ${money(Number(ps.packaging_cost_pence||0)/100)} = <b>${money(totalCost)}</b> per unit · GP at current price <b>${gp.toFixed(1)}%</b></div><label>Product photo<input id="photo${i.id}" type="file" accept="image/jpeg,image/png,image/webp"></label><div id="photoProgress${i.id}" class="progress hidden"><span></span></div><div class="split"><button onclick="uploadRetailPhoto(${i.id})">Upload photo</button><button onclick="saveRetailProduct(${i.id})">Save product</button></div></div>`}).join('')||'<p class="muted">No retail products yet.</p>'}</div>`;
++    <div class="panel" style="margin-top:12px"><div class="row"><h2>Products</h2><button onclick="addRetailProduct()">+ Add product</button></div>${items.map(i=>{const ps=map[i.id]||{};const r=ownerData.recipes.find(r=>Number(r.item_id)===Number(i.id));const recipeCost=r?ownerData.recipeIngredients.filter(x=>Number(x.recipe_id)===Number(r.id)).reduce((n,x)=>n+Number(x.quantity||0)*Number(ownerData.stock.find(s=>Number(s.id)===Number(x.stock_item_id))?.cost_per_unit||0),0):0;const totalCost=recipeCost+Number(ps.packaging_cost_pence||0)/100;const gp=Number(i.price_pence||0)>0?(1-totalCost/(Number(i.price_pence)/100))*100:0;return `<div class="retailOwnerProduct"><div class="row"><b>${esc(i.name)}</b><b>${money(Number(i.price_pence||0)/100)}</b></div><label>Name<input id="fh_name_${i.id}" value="${esc(i.name)}"></label><label>Description<textarea id="fh_desc_${i.id}">${esc(i.description||'')}</textarea></label><label>Customer ingredient list<textarea id="fh_ing_${i.id}" placeholder="Ingredients in descending weight order">${esc(i.options_config?.retail_ingredients||'')}</textarea></label><div class="split"><label>Price £<input id="fh_price_${i.id}" type="number" step=".01" min="0" value="${(Number(i.price_pence||0)/100).toFixed(2)}"></label><label>Pouches / units available<input id="fh_stock_${i.id}" type="number" min="0" step="1" value="${Number(i.stock||0)}"></label></div><div class="split"><label>Net product weight g<input id="fh_net_${i.id}" type="number" step="1" min="1" value="${Number(i.options_config?.retail_net_weight_g||100)}"></label><label>Postal weight g<input id="fh_weight_${i.id}" type="number" step="1" min="1" value="${Number(ps.postal_weight_g||120)}"></label></div><label>Packaging cost per unit £<input id="fh_pack_${i.id}" type="number" step=".01" min="0" value="${(Number(ps.packaging_cost_pence||0)/100).toFixed(2)}"></label><label class="switch"><input id="fh_active_${i.id}" type="checkbox" ${i.active?'checked':''}> Available in postal shop</label><div class="notice"><b>Costing:</b> Linked recipe ${r?esc(r.name):'not linked'} · ingredients ${money(recipeCost)} + packaging ${money(Number(ps.packaging_cost_pence||0)/100)} = <b>${money(totalCost)}</b> per unit · GP at current price <b>${gp.toFixed(1)}%</b></div><label>Product photo<input id="photo${i.id}" type="file" accept="image/jpeg,image/png,image/webp"></label><div id="photoProgress${i.id}" class="progress hidden"><span></span></div><div class="split"><button onclick="uploadRetailPhoto(${i.id})">Upload photo</button><button onclick="saveRetailProduct(${i.id})">Save product</button></div></div>`}).join('')||'<p class="muted">No retail products yet.</p>'}</div>`;
+     decorateOwnerPage('fusionhome');
+   }catch(e){page.innerHTML=`<div class="panel"><h2>Fusion at Home</h2><div class="notice">${esc(e.message)}</div></div>`;decorateOwnerPage('fusionhome')}
+ }
+ window.saveRetailSettings=async()=>{try{await api('/rest/v1/retail_settings?id=eq.1',{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({enabled:$('fh_enabled').checked,postage_label:$('fh_post_label').value.trim()||'Standard UK Postage',postage_pence:Math.round(Number($('fh_postage').value||0)*100),free_postage_threshold_pence:Math.round(Number($('fh_freepost').value||0)*100),dispatch_note:$('fh_dispatch').value.trim(),updated_at:new Date().toISOString()})});await renderFusionAtHome();alert('Postal settings saved.')}catch(e){alert(e.message)}}
+-window.saveRetailProduct=async id=>{try{await api('/rest/v1/items?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:$('fh_name_'+id).value.trim(),description:$('fh_desc_'+id).value.trim(),price_pence:Math.round(Number($('fh_price_'+id).value||0)*100),stock:Math.max(0,Math.floor(Number($('fh_stock_'+id).value||0))),active:$('fh_active_'+id).checked,updated_at:new Date().toISOString()})});await api('/rest/v1/retail_product_settings?on_conflict=item_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({item_id:id,packaging_cost_pence:Math.round(Number($('fh_pack_'+id).value||0)*100),postal_weight_g:Math.max(1,Math.round(Number($('fh_weight_'+id).value||120))),updated_at:new Date().toISOString()})});await loadOwnerData();await loadCustomer();await renderFusionAtHome();alert('Retail product saved.')}catch(e){alert(e.message)}}
++window.saveRetailProduct=async id=>{try{const cur=ownerData.items.find(x=>Number(x.id)===Number(id));const options_config={...(cur?.options_config||{}),retail_ingredients:$('fh_ing_'+id).value.trim(),retail_net_weight_g:Math.max(1,Math.round(Number($('fh_net_'+id).value||100)))};await api('/rest/v1/items?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:$('fh_name_'+id).value.trim(),description:$('fh_desc_'+id).value.trim(),price_pence:Math.round(Number($('fh_price_'+id).value||0)*100),stock:Math.max(0,Math.floor(Number($('fh_stock_'+id).value||0))),active:$('fh_active_'+id).checked,options_config,updated_at:new Date().toISOString()})});await api('/rest/v1/retail_product_settings?on_conflict=item_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({item_id:id,packaging_cost_pence:Math.round(Number($('fh_pack_'+id).value||0)*100),postal_weight_g:Math.max(1,Math.round(Number($('fh_weight_'+id).value||120))),updated_at:new Date().toISOString()})});await loadOwnerData();await loadCustomer();await renderFusionAtHome();alert('Retail product saved.')}catch(e){alert(e.message)}}
+ window.uploadRetailPhoto=async id=>{await uploadPhoto(id);await loadOwnerData();await loadCustomer();await renderFusionAtHome()}
+-window.addRetailProduct=async()=>{const name=prompt('New Fusion at Home product name');if(!name)return;try{const cat=ownerData.categories.find(c=>String(c.name).toLowerCase()==='fusion at home');if(!cat)throw new Error('Fusion at Home category is missing');const r=await api('/rest/v1/items',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({category_id:cat.id,name:name.trim(),description:'',price_pence:0,stock:0,active:false,special:false,sort_order:100})});const id=r?.[0]?.id;if(id)await api('/rest/v1/retail_product_settings',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({item_id:id,packaging_cost_pence:0,postal_weight_g:120})});await loadOwnerData();await renderFusionAtHome();alert('Product created. Add its recipe in Cookbook so ingredient costing and stock depletion are linked.')}catch(e){alert(e.message)}}
++window.addRetailProduct=async()=>{const name=prompt('New Fusion at Home product name');if(!name)return;try{const cat=ownerData.categories.find(c=>String(c.name).toLowerCase()==='fusion at home');if(!cat)throw new Error('Fusion at Home category is missing');const r=await api('/rest/v1/items',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify({category_id:cat.id,name:name.trim(),description:'',price_pence:0,stock:0,active:false,special:false,sort_order:100,options_config:{retail_ingredients:'',retail_net_weight_g:100}})});const id=r?.[0]?.id;if(id)await api('/rest/v1/retail_product_settings',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({item_id:id,packaging_cost_pence:0,postal_weight_g:120})});await loadOwnerData();await renderFusionAtHome();alert('Product created. Add its recipe in Cookbook so ingredient costing and stock depletion are linked.')}catch(e){alert(e.message)}}
+ 
+ /* Postal orders owner page */
+ async function renderRetailOrders(){
+@@ -4268,12 +4284,19 @@
+       document.getElementById('headerMenu')?.classList.add('hidden');
+       if(typeof hideTopLevelViewsV383==='function') hideTopLevelViewsV383();
+       else ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
++      document.documentElement.removeAttribute('data-initial-view');
+       document.getElementById('owner')?.classList.remove('hidden');
+       const u=new URL(location.href);
+       u.search='';
+       u.searchParams.set('view','owner');
+       history.pushState({view:'owner'},'',u);
+-      if(typeof token!=='undefined' && token && typeof openOwner==='function') openOwner();
++      const auth=document.getElementById('authPanel'),dash=document.getElementById('dashboard');
++      if(typeof token!=='undefined' && token && typeof openOwner==='function'){
++        openOwner();
++      }else{
++        auth?.classList.remove('hidden');
++        dash?.classList.add('hidden');
++      }
+     };
+   }
+ 
