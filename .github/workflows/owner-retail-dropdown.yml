@@ -1,0 +1,56 @@
+name: Owner postal product dropdowns
+
+on:
+  push:
+    paths:
+      - '.github/workflows/owner-retail-dropdown.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Convert owner postal products to dropdowns
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          css_old = '.retailOwnerProduct{border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0;background:#fffaf3}'
+          css_new = '''.retailOwnerProduct{border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0;background:#fffaf3}\n.retailOwnerProductDrop{padding:0;overflow:hidden}\n.retailOwnerProductDrop>summary{list-style:none;cursor:pointer;padding:14px;background:#fffaf3}\n.retailOwnerProductDrop>summary::-webkit-details-marker{display:none}\n.retailOwnerProductDrop>summary .row{margin:0}\n.retailOwnerProductDrop>summary b:last-child{display:flex;align-items:center;gap:8px;color:var(--o)}\n.retailOwnerProductDrop>summary b:last-child::after{content:'⌄';font-size:20px;line-height:1;transition:transform .18s ease;color:#222}\n.retailOwnerProductDrop[open]>summary b:last-child::after{transform:rotate(180deg)}\n.retailOwnerProductBody{padding:12px 14px 14px;border-top:1px solid var(--line)}'''
+          if css_old not in s:
+              raise SystemExit('Expected retail owner CSS not found')
+          s = s.replace(css_old, css_new, 1)
+
+          start_old = 'return `<div class="retailOwnerProduct"><div class="row"><b>${esc(i.name)}</b><b>${money(Number(i.price_pence||0)/100)}</b></div><label>Name<input'
+          start_new = 'return `<details class="retailOwnerProduct retailOwnerProductDrop"><summary><div class="row"><b>${esc(i.name)}</b><b>${money(Number(i.price_pence||0)/100)}</b></div></summary><div class="retailOwnerProductBody"><label>Name<input'
+          if start_old not in s:
+              raise SystemExit('Expected retail product opening markup not found')
+          s = s.replace(start_old, start_new, 1)
+
+          end_old = 'Save product</button></div></div>`}).join(\'\')||\'<p class="muted">No retail products yet.</p>\'}'
+          end_new = 'Save product</button></div></div></details>`}).join(\'\')||\'<p class="muted">No retail products yet.</p>\'}'
+          if end_old not in s:
+              raise SystemExit('Expected retail product closing markup not found')
+          s = s.replace(end_old, end_new, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+          rm -f .github/workflows/owner-retail-dropdown.yml
+          git config user.name "Fusion Flavours Update"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Make owner postal products collapsible"
+          git push origin HEAD:main
