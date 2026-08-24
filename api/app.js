@@ -18,14 +18,16 @@ module.exports = async function handler(req, res) {
     // Final navigation guard plus Harnell resident-menu grouping.
     const navFix = `
 <style>
-.harnellSection{margin:22px 0 8px}
-.harnellSectionTitle{margin:0 0 10px;padding:9px 2px 8px;border-bottom:4px solid var(--o);font-size:25px;font-weight:950}
-.harnellSection .harnellMenuGrid{margin-bottom:4px}
+.harnellSection{margin:24px 0 12px}
+.harnellSectionTitle{margin:0 0 12px;padding:9px 2px 8px;border-bottom:4px solid var(--o);font-size:25px;font-weight:950}
+.harnellMenuGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:4px}
 .harnellEmpty{grid-column:1/-1;background:#fff8ef;border:1px dashed #d8c2ae;border-radius:14px;padding:14px;color:var(--muted);font-size:13px}
+@media(max-width:760px){.harnellMenuGrid{grid-template-columns:1fr}}
 </style>
 <script>
 (function(){
   function byId(id){ return document.getElementById(id); }
+  var harnellCategoryNames={};
 
   function hideTop(){
     ['welcomeHub','customer','retailCustomer','owner','cateringCustomer','harnellCustomer','legalCustomer'].forEach(function(id){
@@ -81,10 +83,19 @@ module.exports = async function handler(req, res) {
 
   function harnellGroupFor(row){
     var categoryId=Number(row && row.items && row.items.category_id || 0);
-    if(categoryId===1 || categoryId===2) return 'mains';
-    if(categoryId===3) return 'sides';
-    if(categoryId===5) return 'drinks';
-    if(categoryId===4) return 'desserts';
+    var category=String(harnellCategoryNames[categoryId]||'').trim().toLowerCase();
+    var itemName=String((row&&row.items&&row.items.name)||row?.resident_name||'').toLowerCase();
+
+    // Use the real live category name rather than hard-coded database IDs.
+    if(category.includes('drink')) return 'drinks';
+    if(category.includes('dessert') || category.includes('sweet')) return 'desserts';
+    if(category.includes('side') || category.includes('sauce')) return 'sides';
+    if(category.includes('main') || category.includes('bowl') || category.includes('special')) return 'mains';
+
+    // Defensive fallback for any old/uncategorised item.
+    if(/tzatziki|ezme|sauce|dip|rice|fries|pita|pitta|bread|salad/.test(itemName)) return 'sides';
+    if(/rubicon|coke|cola|sprite|fanta|water|juice|drink/.test(itemName)) return 'drinks';
+    if(/tiramisu|cake|brownie|dessert|baklava|sweet/.test(itemName)) return 'desserts';
     return 'mains';
   }
 
@@ -96,6 +107,7 @@ module.exports = async function handler(req, res) {
     var image=r.items&&r.items.image_url;
     return '<article class="harnellDish">'+
       (image?'<img class="recipeThumb" src="'+esc(image)+'" alt="'+esc(displayName)+'">':'')+
+      '<span class="harnellVariantBadge">HARNELL</span>'+
       '<h3>'+esc(displayName)+'</h3><p class="muted">'+esc(displayDescription)+'</p>'+
       '<div class="row"><span class="harnellPrice">'+money(Number(r.resident_price_pence||0)/100)+'</span><button '+(!canOrder?'disabled':'')+' onclick="addHarnellItem('+r.item_id+')">'+(soldOut?'Sold out':'Add')+'</button></div></article>';
   }
@@ -106,10 +118,13 @@ module.exports = async function handler(req, res) {
     window.loadHarnellPublic = async function(){
       const results=await Promise.all([
         api('/rest/v1/settings?id=eq.1&select=*').then(function(x){return x[0]}),
-        api('/rest/v1/harnell_menu_items?active=eq.true&select=*,items(id,name,description,image_url,active,stock,category_id)&order=sort_order.asc,id.asc')
+        api('/rest/v1/harnell_menu_items?active=eq.true&select=*,items(id,name,description,image_url,active,stock,category_id)&order=sort_order.asc,id.asc'),
+        api('/rest/v1/categories?select=id,name')
       ]);
       state.settings=results[0];
       harnellMenuRows=(results[1]||[]).filter(function(x){return x.items && x.items.active!==false});
+      harnellCategoryNames={};
+      (results[2]||[]).forEach(function(c){harnellCategoryNames[Number(c.id)]=String(c.name||'')});
     };
 
     window.renderHarnellCustomer = function(){
@@ -130,7 +145,7 @@ module.exports = async function handler(req, res) {
       menu.innerHTML=groups.map(function(group){
         var key=group[0], label=group[1];
         var rows=(harnellMenuRows||[]).filter(function(r){return harnellGroupFor(r)===key});
-        return '<section class="harnellSection"><h2 class="harnellSectionTitle">'+label+'</h2><div class="harnellMenuGrid">'+
+        return '<section class="harnellSection" data-harnell-section="'+key+'"><h2 class="harnellSectionTitle">'+label+'</h2><div class="harnellMenuGrid">'+
           (rows.length?rows.map(harnellDishCard).join(''):'<div class="harnellEmpty">No '+label.toLowerCase()+' added yet.</div>')+
           '</div></section>';
       }).join('');
