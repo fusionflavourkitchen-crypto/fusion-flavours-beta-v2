@@ -10,6 +10,10 @@
       "destination": "/api/app?mode=owner"
     },
     {
+      "source": "/index.html",
+      "destination": "/api/app"
+    },
+    {
       "source": "/",
       "destination": "/api/app"
     }
