@@ -22,13 +22,13 @@ window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCater
       // Load these independently. Delivery Management must still be injected
       // even when catering-policy.js is already present in the HTML.
       if (!/src=["'][^"']*\/catering-policy\.js(?:[?"'])/i.test(body)) {
-        injections.push('<script src="/catering-policy.js?v=20260826c"></script>');
+        injections.push('<script src="/catering-policy.js?v=20260826d"></script>');
       }
       if (!/src=["'][^"']*\/delivery-management\.js(?:[?"'])/i.test(body)) {
         injections.push('<script src="/delivery-management.js?v=20260826c"></script>');
       }
       if (!/src=["'][^"']*\/delivery-management-mount\.js(?:[?"'])/i.test(body)) {
-        injections.push('<script src="/delivery-management-mount.js?v=20260826a"></script>');
+        injections.push('<script src="/delivery-management-mount.js?v=20260826b"></script>');
       }
 
       if (injections.length) {
