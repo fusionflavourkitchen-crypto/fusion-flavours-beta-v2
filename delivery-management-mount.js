@@ -136,7 +136,7 @@
     repairTimer = setTimeout(() => {
       repairTimer = null;
       repair();
-    }, 30);
+    }, 75);
   }
 
   function start() {
@@ -144,7 +144,8 @@
 
     // The owner dashboard rebuilds parts of its navigation after data loads.
     // Re-attach Delivery whenever that happens, and re-wrap navigation if a
-    // later script replaces showTab/showOwnerArea.
+    // later script replaces showTab/showOwnerArea. Debounce the repair so a
+    // large dashboard render causes one repair rather than dozens.
     const observer = new MutationObserver(scheduleRepair);
     observer.observe(document.body, { childList: true, subtree: true });
     window.__fusionDeliveryMountObserver = observer;
@@ -153,7 +154,7 @@
     const interval = setInterval(() => {
       repair();
       attempts += 1;
-      if (attempts >= 80) clearInterval(interval);
+      if (attempts >= 40) clearInterval(interval);
     }, 250);
   }
 
