@@ -23,10 +23,24 @@
     try{return new Date(dateText+'T12:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});}catch(e){return dateText;}
   }
 
+  function packages(){
+    try{
+      if(typeof window.__fusionGetCateringPackages==='function') return window.__fusionGetCateringPackages()||[];
+      return window.cateringPackages||[];
+    }catch(e){return [];}
+  }
+
+  function getOwnerData(){
+    try{
+      if(typeof window.__fusionGetOwnerData==='function') return window.__fusionGetOwnerData();
+      return window.ownerData||null;
+    }catch(e){return null;}
+  }
+
   function selectedPackage(){
     try{
       var id=Number(byId('cePackageId') && byId('cePackageId').value || 0);
-      return (window.cateringPackages||[]).find(function(x){return Number(x.id)===id;}) || null;
+      return packages().find(function(x){return Number(x.id)===id;}) || null;
     }catch(e){return null;}
   }
 
@@ -74,7 +88,10 @@
     function suggested(){
       var t=Number(total.value||0);
       if(t>0) return t;
-      try{return Number(window.cateringSuggestedTotal ? window.cateringSuggestedTotal() : 0)||0;}catch(e){return 0;}
+      try{
+        if(typeof window.__fusionCateringSuggestedTotal==='function') return Number(window.__fusionCateringSuggestedTotal()||0);
+        return Number(window.cateringSuggestedTotal ? window.cateringSuggestedTotal() : 0)||0;
+      }catch(e){return 0;}
     }
     function sync(){
       if(dep.dataset.manual==='1') return;
@@ -97,14 +114,18 @@
   }
 
   function orderFor(id){
-    try{return (window.ownerData && ownerData.cateringOrders || []).find(function(x){return Number(x.id)===Number(id);})||null;}catch(e){return null;}
+    try{
+      var data=getOwnerData();
+      return (((data&&data.cateringOrders)||[]).find(function(x){return Number(x.id)===Number(id);}))||null;
+    }catch(e){return null;}
   }
 
   window.setCateringDeposit50=async function(id){
     var total=byId('cb_total_'+id), dep=byId('cb_deposit_'+id);
     if(!total || !dep) return;
     dep.value=(Math.max(0,Number(total.value||0))*0.5).toFixed(2);
-    if(typeof window.saveCateringBooking==='function') await window.saveCateringBooking(id);
+    if(typeof window.__fusionSaveCateringBooking==='function') await window.__fusionSaveCateringBooking(id);
+    else if(typeof window.saveCateringBooking==='function') await window.saveCateringBooking(id);
   };
 
   window.copyCateringBalanceLink=async function(id){
@@ -137,7 +158,10 @@
       var target=total*0.5;
       var balance=Math.max(0,total-paid);
       var foodCost=0;
-      try{foodCost=typeof window.cateringOrderFoodCost==='function'?Number(window.cateringOrderFoodCost(o)||0):0;}catch(e){}
+      try{
+        if(typeof window.__fusionCateringOrderFoodCost==='function') foodCost=Number(window.__fusionCateringOrderFoodCost(o)||0);
+        else if(typeof window.cateringOrderFoodCost==='function') foodCost=Number(window.cateringOrderFoodCost(o)||0);
+      }catch(e){}
       var projected=Math.max(0,total-foodCost);
       var dueDate=workingDaysBefore(o.event_date,3);
       var box=card.querySelector('.cateringPaymentPolicyBox');
