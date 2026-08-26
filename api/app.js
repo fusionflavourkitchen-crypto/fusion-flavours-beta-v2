@@ -47,7 +47,7 @@ module.exports = async function handler(req, res) {
     var hm=byId('headerMenu');
     if(hm) hm.classList.add('hidden');
     if(updateUrl){
-      try{ history.pushState({view:'home'},'',location.pathname); }catch(e){}
+      try{ history.pushState({view:'home'},'','/'); }catch(e){}
     }
     try{ if(typeof renderWelcomeHub==='function') renderWelcomeHub(); }catch(e){}
     window.scrollTo(0,0);
