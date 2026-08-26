@@ -187,6 +187,22 @@ module.exports = async function handler(req, res) {
     showWelcome(true);
   },true);
 
+  // A contact number is required for live delivery orders. Guard the legacy
+  // checkout before its click handler runs so an order cannot be submitted
+  // without a number for delivery updates or courier contact.
+  document.addEventListener('click',function(e){
+    var t=e.target && e.target.closest ? e.target.closest('#orderBtn') : null;
+    if(!t) return;
+    var phone=byId('phone');
+    if(phone && !String(phone.value||'').trim()){
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      alert('Please enter a contact phone number.');
+      try{ phone.focus(); }catch(err){}
+    }
+  },true);
+
   window.addEventListener('popstate',function(){
     var view=new URLSearchParams(location.search).get('view') || 'home';
     if(view==='owner') showOwner(false);
