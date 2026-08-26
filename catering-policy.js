@@ -211,6 +211,13 @@
     if(e.target && (e.target.id==='ceGuests' || e.target.id==='cePackageId')) setTimeout(updateDepositNotice50,0);
   });
 
-  var observer=new MutationObserver(function(){setTimeout(apply,0);});
+  var applyTimer=null;
+  var observer=new MutationObserver(function(){
+    if(applyTimer) return;
+    applyTimer=setTimeout(function(){
+      applyTimer=null;
+      apply();
+    },75);
+  });
   observer.observe(document.documentElement,{childList:true,subtree:true});
 })();
