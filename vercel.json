@@ -2,20 +2,23 @@
   "functions": {
     "api/app.js": {
       "includeFiles": "index.html"
+    },
+    "api/app-catering.js": {
+      "includeFiles": "index.html"
     }
   },
   "rewrites": [
     {
       "source": "/owner",
-      "destination": "/api/app?mode=owner"
+      "destination": "/api/app-catering?mode=owner"
     },
     {
       "source": "/index.html",
-      "destination": "/api/app"
+      "destination": "/api/app-catering"
     },
     {
       "source": "/",
-      "destination": "/api/app"
+      "destination": "/api/app-catering"
     }
   ]
 }
