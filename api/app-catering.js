@@ -11,7 +11,8 @@ window.__fusionCateringOrderFoodCost = function(o){ try { return typeof catering
 window.__fusionCateringSuggestedTotal = function(){ try { return typeof cateringSuggestedTotal === 'function' ? cateringSuggestedTotal() : 0; } catch(e) { return 0; } };
 window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCateringBooking === 'function' ? saveCateringBooking(id) : Promise.resolve(); } catch(e) { return Promise.reject(e); } };
 </script>
-<script src="/catering-policy.js?v=20260826b"></script>`;
+<script src="/catering-policy.js?v=20260826b"></script>
+<script src="/delivery-management.js?v=20260826a"></script>`;
       body = body.replace(/<\/body>/i, bridge + '\n</body>');
     }
     return originalSend(body);
