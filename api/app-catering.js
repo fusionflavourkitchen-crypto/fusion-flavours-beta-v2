@@ -25,7 +25,10 @@ window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCater
         injections.push('<script src="/catering-policy.js?v=20260826c"></script>');
       }
       if (!/src=["'][^"']*\/delivery-management\.js(?:[?"'])/i.test(body)) {
-        injections.push('<script src="/delivery-management.js?v=20260826b"></script>');
+        injections.push('<script src="/delivery-management.js?v=20260826c"></script>');
+      }
+      if (!/src=["'][^"']*\/delivery-management-mount\.js(?:[?"'])/i.test(body)) {
+        injections.push('<script src="/delivery-management-mount.js?v=20260826a"></script>');
       }
 
       if (injections.length) {
