@@ -1,6 +1,5 @@
 /* Fusion Flavours Kitchen integration
    Shared lifecycle for Menu, Stock, Costings, Cookbook and Prep.
-   Feature renderers should render their own content; cross-feature housekeeping belongs here.
 */
 (() => {
   'use strict';
@@ -28,12 +27,16 @@
     if (!KITCHEN_TABS.has(tab)) return;
     const page = pageFor(tab);
     if (!page) return;
-
     removeLegacyOwnerTabs(page);
     normaliseInteractiveState(page);
     page.dataset.fusionFeature = 'kitchen';
     page.dataset.fusionKitchenTab = tab;
   }
 
-  window.FusionKitchen = { afterRender, tabs: [...KITCHEN_TABS] };
+  const api = { afterRender, tabs: [...KITCHEN_TABS] };
+  window.FusionKitchen = api;
+
+  KITCHEN_TABS.forEach(tab => {
+    window.FusionOwnerRouter?.register?.(tab, { afterRender: () => afterRender(tab) });
+  });
 })();
