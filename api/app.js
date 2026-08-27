@@ -14,9 +14,9 @@ module.exports = async function handler(req, res) {
 
     const bootstrap = [
       `<script>window.__FUSION_BOOT_MODE__=${JSON.stringify(mode)};</script>`,
-      '<script src="/fusion-runtime.js?v=20260827-clean"></script>',
-      '<script src="/catering-policy.js?v=20260827-clean"></script>',
-      '<script src="/delivery-management.js?v=20260827-clean"></script>'
+      '<script src="/fusion-runtime.js?v=20260827-owner-clean-v2"></script>',
+      '<script src="/catering-policy.js?v=20260827-owner-clean-v2"></script>',
+      '<script src="/delivery-management.js?v=20260827-owner-clean-v2"></script>'
     ].join('\n');
 
     if (!/<\/body>\s*<\/html>\s*$/i.test(html)) {
@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    res.setHeader('X-Fusion-Build', 'clean-runtime-20260827');
+    res.setHeader('X-Fusion-Build', 'owner-clean-v2-20260827');
 
     if (req.method === 'HEAD') return res.status(200).end();
     return res.status(200).send(html);
