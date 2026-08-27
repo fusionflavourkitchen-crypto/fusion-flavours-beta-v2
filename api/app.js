@@ -1,12 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-23';
+const BUILD = '20260827-refactor-24';
 
-function stripLegacyRepairTimers(source) {
+function stripLegacyOwnerControl(source) {
   return source
     .replace(/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\);?/g, '')
-    .replace(/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\);?/g, '');
+    .replace(/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\);?/g, '')
+    .replace(/window\.showTab=t=>\{[\s\S]*?\}\s*\nasync function loadOwnerData/i, 'async function loadOwnerData');
 }
 
 function ensureOwnerShell(source) {
@@ -39,7 +40,7 @@ module.exports = async function handler(req, res) {
     }
 
     const htmlPath = path.join(process.cwd(), 'index.html');
-    let html = ensureOwnerShell(stripLegacyRepairTimers(fs.readFileSync(htmlPath, 'utf8')));
+    let html = ensureOwnerShell(stripLegacyOwnerControl(fs.readFileSync(htmlPath, 'utf8')));
     const mode = String(req.query?.mode || '').toLowerCase();
 
     if (!/<\/head>/i.test(html) || !/<\/body>\s*<\/html>\s*$/i.test(html)) {
