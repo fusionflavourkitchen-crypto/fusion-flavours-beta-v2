@@ -10,7 +10,7 @@
   "rewrites": [
     {
       "source": "/owner",
-      "destination": "/api/app-catering?mode=owner"
+      "destination": "/api/app?mode=owner"
     },
     {
       "source": "/index.html",
