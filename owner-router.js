@@ -1,6 +1,6 @@
 /* Fusion Flavours Owner Router
    Single source of truth for Owner navigation and feature lifecycle.
-   Historical wrapper chains in index.html are deliberately bypassed.
+   Feature modules register their own lifecycle hooks.
 */
 (() => {
   'use strict';
@@ -35,30 +35,6 @@
     if (!tab) throw new Error('Owner lifecycle registration requires a tab name');
     const existing = LIFECYCLE.get(tab) || {};
     LIFECYCLE.set(tab, { ...existing, ...hooks });
-  }
-
-  function registerBuiltIns() {
-    register('orders', { afterRender: () => window.FusionOrders?.apply?.() });
-    register('catering', {
-      beforeRender: async () => {
-        if (typeof window.loadCateringOrders !== 'function') return;
-        if (!window.ownerData?.cateringOrders) await window.loadCateringOrders();
-      },
-      afterRender: () => window.FusionCateringPolicy?.apply?.()
-    });
-    register('performance', {
-      beforeRender: () => window.FusionFinance?.load?.(true),
-      afterRender: () => window.FusionFinance?.applyPerformanceView?.()
-    });
-    ['menu','stock','costings','cookbook','prep'].forEach(tab => {
-      register(tab, { afterRender: () => window.FusionKitchen?.afterRender?.(tab) });
-    });
-    register('delivery', {
-      render: async () => {
-        if (typeof window.refreshDeliveryManagement !== 'function') throw new Error('Delivery module is not loaded');
-        await window.refreshDeliveryManagement();
-      }
-    });
   }
 
   function areaForTab(tab) {
@@ -191,16 +167,12 @@
   function install() {
     if (installed) return;
     installed = true;
-    registerBuiltIns();
     ensureStructure();
     installEvents();
 
     window.showTab = showTab;
     window.showOwnerArea = showArea;
     window.toggleOwnerNav = toggleMenu;
-
-    // Historical index wrappers used this only to re-add Owner subtabs.
-    // The router now owns the tabs, so the old callback is retired.
     window.decorateOwnerPage = function legacyOwnerDecorationRetired() {};
     window.FusionOwnerRouter = api;
   }
