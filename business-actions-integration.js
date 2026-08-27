@@ -5,6 +5,10 @@
   'use strict';
 
   const show = tab => window.FusionOwnerRouter?.showTab?.(tab);
+  const request = (...args) => {
+    if (typeof window.api !== 'function') throw new Error('App API is unavailable');
+    return window.api(...args);
+  };
 
   window.setPerformanceMode = mode => {
     try { performanceMode = mode === 'weekly' ? 'weekly' : 'daily'; } catch (_) {}
@@ -62,13 +66,12 @@
   };
 
   async function reloadPerformance() {
-    if (typeof window.api !== 'function') return show('performance');
     const [waste, labour, costs, targets, stock] = await Promise.all([
-      window.api('/rest/v1/waste_logs?select=*&order=waste_date.desc,id.desc&limit=500'),
-      window.api('/rest/v1/labour_logs?select=*&order=work_date.desc,id.desc&limit=500'),
-      window.api('/rest/v1/business_costs?select=*&order=cost_date.desc,id.desc&limit=500'),
-      window.api('/rest/v1/sales_targets?select=*&order=target_date.desc,period_type.asc&limit=500'),
-      window.api('/rest/v1/stock_items?active=eq.true&select=*&order=stock_category.asc,name.asc')
+      request('/rest/v1/waste_logs?select=*&order=waste_date.desc,id.desc&limit=500'),
+      request('/rest/v1/labour_logs?select=*&order=work_date.desc,id.desc&limit=500'),
+      request('/rest/v1/business_costs?select=*&order=cost_date.desc,id.desc&limit=500'),
+      request('/rest/v1/sales_targets?select=*&order=target_date.desc,period_type.asc&limit=500'),
+      request('/rest/v1/stock_items?active=eq.true&select=*&order=stock_category.asc,name.asc')
     ]);
     const owner = window.ownerData;
     if (owner) {
@@ -82,14 +85,13 @@
   }
 
   async function reloadFinance() {
-    if (typeof window.api !== 'function') return show('costs');
     const [overheads, rules, usage, dailyAdmin, stock, slots] = await Promise.all([
-      window.api('/rest/v1/overhead_costs?active=eq.true&select=*&order=category.asc,name.asc'),
-      window.api('/rest/v1/consumable_rules?active=eq.true&select=*&order=rule_type.asc,id.asc'),
-      window.api('/rest/v1/consumable_usage?select=*&order=usage_date.desc,id.desc&limit=1000'),
-      window.api('/rest/v1/daily_admin?select=*&order=admin_date.desc&limit=180'),
-      window.api('/rest/v1/stock_items?active=eq.true&select=*&order=stock_category.asc,name.asc'),
-      window.api('/rest/v1/delivery_slots?select=*&order=sort_order.asc,start_time.asc')
+      request('/rest/v1/overhead_costs?active=eq.true&select=*&order=category.asc,name.asc'),
+      request('/rest/v1/consumable_rules?active=eq.true&select=*&order=rule_type.asc,id.asc'),
+      request('/rest/v1/consumable_usage?select=*&order=usage_date.desc,id.desc&limit=1000'),
+      request('/rest/v1/daily_admin?select=*&order=admin_date.desc&limit=180'),
+      request('/rest/v1/stock_items?active=eq.true&select=*&order=stock_category.asc,name.asc'),
+      request('/rest/v1/delivery_slots?select=*&order=sort_order.asc,start_time.asc')
     ]);
     const owner = window.ownerData;
     if (owner) {
@@ -103,7 +105,31 @@
     return show('costs');
   }
 
+  async function reloadDailyAdmin() {
+    const [orders, waste, labour, costs, usage, dailyAdmin, stock] = await Promise.all([
+      request('/rest/v1/orders?select=*,order_items(*)&order=id.desc&limit=600'),
+      request('/rest/v1/waste_logs?select=*&order=waste_date.desc,id.desc&limit=500'),
+      request('/rest/v1/labour_logs?select=*&order=work_date.desc,id.desc&limit=500'),
+      request('/rest/v1/business_costs?select=*&order=cost_date.desc,id.desc&limit=500'),
+      request('/rest/v1/consumable_usage?select=*&order=usage_date.desc,id.desc&limit=1000'),
+      request('/rest/v1/daily_admin?select=*&order=admin_date.desc&limit=180'),
+      request('/rest/v1/stock_items?active=eq.true&select=*&order=stock_category.asc,name.asc')
+    ]);
+    const owner = window.ownerData;
+    if (owner) {
+      owner.orders = orders;
+      owner.wasteLogs = waste;
+      owner.labourLogs = labour;
+      owner.businessCosts = costs;
+      owner.consumableUsage = usage;
+      owner.dailyAdmin = dailyAdmin;
+      owner.stock = stock;
+    }
+    return show('dailyadmin');
+  }
+
   window.reloadPerformanceData = reloadPerformance;
   window.reloadFinanceOps = reloadFinance;
-  window.FusionBusinessActions = { reloadPerformance, reloadFinance };
+  window.reloadDailyOps = reloadDailyAdmin;
+  window.FusionBusinessActions = { reloadPerformance, reloadFinance, reloadDailyAdmin };
 })();
