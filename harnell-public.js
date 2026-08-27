@@ -5,6 +5,20 @@
   const $ = id => document.getElementById(id);
   let categoryNames = {};
 
+  function installStyles() {
+    if ($('fusionHarnellStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'fusionHarnellStyles';
+    style.textContent = `
+      .harnellSection{margin:24px 0 12px}
+      .harnellSectionTitle{margin:0 0 12px;padding:9px 2px 8px;border-bottom:4px solid var(--o);font-size:25px;font-weight:950}
+      .harnellMenuGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:4px}
+      .harnellEmpty{grid-column:1/-1;background:#fff8ef;border:1px dashed #d8c2ae;border-radius:14px;padding:14px;color:var(--muted);font-size:13px}
+      @media(max-width:760px){.harnellMenuGrid{grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(style);
+  }
+
   function safe(value) {
     return typeof window.esc === 'function' ? window.esc(value) : String(value ?? '');
   }
@@ -72,6 +86,7 @@
   }
 
   function render() {
+    installStyles();
     const settings = window.state?.settings || {};
     if ($('harnellTitle')) $('harnellTitle').textContent = settings.harnell_title || 'Harnell House Menu';
     if ($('harnellSubtitle')) $('harnellSubtitle').textContent = settings.harnell_subtitle || 'Simple, affordable meals for residents';
@@ -100,6 +115,7 @@
   }
 
   function install() {
+    installStyles();
     window.loadHarnellPublic = load;
     window.renderHarnellCustomer = render;
   }
