@@ -60,6 +60,10 @@
     };
   }
 
+  function closeFinancialPnl() {
+    $('financialPnlPanel')?.querySelector('.pnlTopControl')?.removeAttribute('open');
+  }
+
   async function applyPerformanceView() {
     const page = $('page-performance');
     if (!page) return;
@@ -92,6 +96,7 @@
       if (firstDetail) firstDetail.parentNode.insertBefore(note, firstDetail); else page.appendChild(note);
     }
     note.innerHTML = `<b>Delivery costs included:</b> ${moneyValue(data.deliveryCourierCost)} for ${data.start}${data.end !== data.start ? ` → ${data.end}` : ''}.`;
+    closeFinancialPnl();
   }
 
   function enrichReport(report, data) {
@@ -105,7 +110,7 @@
     };
   }
 
-  const api = { load, courierCostForRange, performanceSnapshot, applyPerformanceView, enrichReport, state };
+  const api = { load, courierCostForRange, performanceSnapshot, applyPerformanceView, closeFinancialPnl, enrichReport, state };
   window.FusionFinance = api;
   window.FusionOwnerRouter?.register?.('performance', {
     beforeRender: () => load(true),
