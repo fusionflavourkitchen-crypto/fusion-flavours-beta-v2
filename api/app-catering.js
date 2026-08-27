@@ -10,7 +10,7 @@ module.exports = async function handler(req, res) {
       // because legacy scripts contain delivery strings even when the visible
       // Owner menu itself does not contain a Delivery button.
       const serviceButton = /(<button\s+data-area=["']service["'][^>]*>Service<\/button>)/i;
-      if (serviceButton.test(body)) {
+      if (serviceButton.test(body) && !/<button\b[^>]*data-area=["']delivery["']/i.test(body)) {
         body = body.replace(
           serviceButton,
           '<button type="button" id="fusionDeliveryNavBtn" data-area="delivery" onclick="window.__fusionOpenDelivery&&window.__fusionOpenDelivery(event)">Delivery</button>\n$1'
@@ -18,9 +18,10 @@ module.exports = async function handler(req, res) {
       }
 
       // Add the physical Delivery owner page next to the other permanent owner
-      // pages on every request. The source index does not contain this element.
-      const pageService = /(<div\s+id=["']page-service["'][^>]*><\/div>)/i;
-      if (pageService.test(body)) {
+      // pages on every request. Allow whitespace/content formatting around the
+      // Service placeholder so a harmless HTML formatting change cannot break it.
+      const pageService = /(<div\s+id=["']page-service["'][^>]*>\s*<\/div>)/i;
+      if (pageService.test(body) && !/id=["']page-delivery["']/i.test(body)) {
         body = body.replace(
           pageService,
           '<div id="page-delivery" class="ownerPage hidden"></div>$1'
@@ -41,7 +42,8 @@ window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCater
 
       // Open Delivery directly instead of asking the legacy owner router to
       // understand a tab that was added after the original app was written.
-      // This removes the mount/routing race that caused the button to disappear.
+      // The mount guard loaded below is the canonical click path and also
+      // repairs any stale/legacy navigation handler that survives startup.
       injections.push(`<script>
 (function(){
   var deliveryRetryTimer = null;
@@ -129,13 +131,13 @@ window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCater
 </script>`);
 
       if (!/src=["'][^"']*\/catering-policy\.js(?:[?"'])/i.test(body)) {
-        injections.push('<script src="/catering-policy.js?v=20260827a"></script>');
+        injections.push('<script src="/catering-policy.js?v=20260827b"></script>');
       }
       if (!/src=["'][^"']*\/delivery-management\.js(?:[?"'])/i.test(body)) {
-        injections.push('<script src="/delivery-management.js?v=20260827a"></script>');
+        injections.push('<script src="/delivery-management.js?v=20260827b"></script>');
       }
       if (!/src=["'][^"']*\/delivery-management-mount\.js(?:[?"'])/i.test(body)) {
-        injections.push('<script src="/delivery-management-mount.js?v=20260827a"></script>');
+        injections.push('<script src="/delivery-management-mount.js?v=20260827b"></script>');
       }
 
       if (injections.length) {
