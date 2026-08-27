@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-11';
+const BUILD = '20260827-refactor-12';
 
 module.exports = async function handler(req, res) {
   try {
@@ -23,7 +23,9 @@ module.exports = async function handler(req, res) {
     const bootstrap = [
       `<script>window.__FUSION_BOOT_MODE__=${JSON.stringify(mode)};</script>`,
       `<script src="/owner-router.js?v=${BUILD}"></script>`,
+      `<script src="/owner-data-integration.js?v=${BUILD}"></script>`,
       `<script src="/harnell-public.js?v=${BUILD}"></script>`,
+      `<script src="/harnell-owner-integration.js?v=${BUILD}"></script>`,
       `<script src="/catering-policy.js?v=${BUILD}"></script>`,
       `<script src="/delivery-management.js?v=${BUILD}"></script>`,
       `<script src="/business-finance-core.js?v=${BUILD}"></script>`,
