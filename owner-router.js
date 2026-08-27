@@ -1,6 +1,6 @@
 /* Fusion Flavours Owner Router
-   Single source of truth for Owner navigation.
-   Historical showTab/showOwnerArea wrapper chains in index.html are deliberately bypassed.
+   Single source of truth for Owner navigation and feature lifecycle.
+   Historical wrapper chains in index.html are deliberately bypassed.
 */
 (() => {
   'use strict';
@@ -24,10 +24,42 @@
     catering: 'renderCateringAdmin', harnell: 'renderHarnellAdmin', fusionhome: 'renderFusionAtHome', service: 'renderService'
   };
 
+  const LIFECYCLE = new Map();
   const $ = id => document.getElementById(id);
   let currentArea = 'dashboard';
   let currentTab = 'dash';
   let installed = false;
+
+  function register(tab, hooks = {}) {
+    tab = String(tab || '').toLowerCase();
+    if (!tab) throw new Error('Owner lifecycle registration requires a tab name');
+    const existing = LIFECYCLE.get(tab) || {};
+    LIFECYCLE.set(tab, { ...existing, ...hooks });
+  }
+
+  function registerBuiltIns() {
+    register('orders', { afterRender: () => window.FusionOrders?.apply?.() });
+    register('catering', {
+      beforeRender: async () => {
+        if (typeof window.loadCateringOrders !== 'function') return;
+        if (!window.ownerData?.cateringOrders) await window.loadCateringOrders();
+      },
+      afterRender: () => window.FusionCateringPolicy?.apply?.()
+    });
+    register('performance', {
+      beforeRender: () => window.FusionFinance?.load?.(true),
+      afterRender: () => window.FusionFinance?.applyPerformanceView?.()
+    });
+    ['menu','stock','costings','cookbook','prep'].forEach(tab => {
+      register(tab, { afterRender: () => window.FusionKitchen?.afterRender?.(tab) });
+    });
+    register('delivery', {
+      render: async () => {
+        if (typeof window.refreshDeliveryManagement !== 'function') throw new Error('Delivery module is not loaded');
+        await window.refreshDeliveryManagement();
+      }
+    });
+  }
 
   function areaForTab(tab) {
     for (const [area, config] of Object.entries(AREA_CONFIG)) {
@@ -52,7 +84,9 @@
   function rebuildOwnerMenu() {
     const menu = $('ownerNavMenu');
     if (!menu) return;
-    menu.innerHTML = Object.entries(AREA_CONFIG).map(([area, config]) => `<button type="button" data-area="${area}">${config.label}</button>`).join('');
+    menu.innerHTML = Object.entries(AREA_CONFIG)
+      .map(([area, config]) => `<button type="button" data-area="${area}">${config.label}</button>`)
+      .join('');
   }
 
   function ensureStructure() {
@@ -70,13 +104,17 @@
     const config = AREA_CONFIG[area] || AREA_CONFIG.dashboard;
     const current = $('ownerNavCurrent');
     if (current) current.textContent = config.label;
-    document.querySelectorAll('#ownerNavMenu [data-area]').forEach(button => button.classList.toggle('active', button.dataset.area === area));
+    document.querySelectorAll('#ownerNavMenu [data-area]').forEach(button => {
+      button.classList.toggle('active', button.dataset.area === area);
+    });
   }
 
   function ownerTabsHtml(area, tab) {
     const config = AREA_CONFIG[area];
     if (!config || config.tabs.length < 2) return '';
-    return `<div class="ownerAreaTabs" data-owner-router-tabs="true">${config.tabs.map(([id, label]) => `<button type="button" data-owner-tab="${id}" class="${id === tab ? 'active' : ''}">${label}</button>`).join('')}</div>`;
+    return `<div class="ownerAreaTabs" data-owner-router-tabs="true">${config.tabs.map(([id, label]) =>
+      `<button type="button" data-owner-tab="${id}" class="${id === tab ? 'active' : ''}">${label}</button>`
+    ).join('')}</div>`;
   }
 
   function decorate(area, tab) {
@@ -87,29 +125,18 @@
     if (tabs) page.insertAdjacentHTML('afterbegin', tabs);
   }
 
-  async function prepare(tab) {
-    if (tab === 'catering' && typeof window.loadCateringOrders === 'function') {
-      const orders = window.ownerData?.cateringOrders;
-      if (!orders) await window.loadCateringOrders();
-    }
-    if (tab === 'performance') await window.FusionFinance?.load?.(true);
-  }
-
-  async function render(tab) {
-    if (tab === 'delivery') {
-      if (typeof window.refreshDeliveryManagement !== 'function') throw new Error('Delivery module is not loaded');
-      await window.refreshDeliveryManagement();
-      return;
-    }
-
+  async function renderBase(tab) {
     const fnName = RENDERERS[tab];
     const fn = fnName && window[fnName];
     if (typeof fn === 'function') await fn();
+  }
 
-    if (tab === 'orders') window.FusionOrders?.apply?.();
-    if (tab === 'catering') window.FusionCateringPolicy?.apply?.();
-    if (tab === 'performance') await window.FusionFinance?.applyPerformanceView?.();
-    if (['menu','stock','costings','cookbook','prep'].includes(tab)) window.FusionKitchen?.afterRender?.(tab);
+  async function runLifecycle(tab) {
+    const hooks = LIFECYCLE.get(tab) || {};
+    if (typeof hooks.beforeRender === 'function') await hooks.beforeRender();
+    if (typeof hooks.render === 'function') await hooks.render();
+    else await renderBase(tab);
+    if (typeof hooks.afterRender === 'function') await hooks.afterRender();
   }
 
   async function showTab(tab) {
@@ -124,8 +151,7 @@
     setCurrent(area, tab);
 
     try {
-      await prepare(tab);
-      await render(tab);
+      await runLifecycle(tab);
     } catch (error) {
       console.error(`Owner route ${tab} failed`, error);
       page.innerHTML = `<h2>${AREA_CONFIG[area]?.label || 'Owner'}</h2><div class="notice">This section failed to load: ${String(error?.message || error)}</div>`;
@@ -165,6 +191,7 @@
   function install() {
     if (installed) return;
     installed = true;
+    registerBuiltIns();
     ensureStructure();
     installEvents();
 
@@ -172,15 +199,14 @@
     window.showOwnerArea = showArea;
     window.toggleOwnerNav = toggleMenu;
 
-    // Older index render wrappers only used this to re-add Owner subtabs.
-    // The router now owns that responsibility, so their callback becomes a harmless compatibility no-op.
+    // Historical index wrappers used this only to re-add Owner subtabs.
+    // The router now owns the tabs, so the old callback is retired.
     window.decorateOwnerPage = function legacyOwnerDecorationRetired() {};
-
     window.FusionOwnerRouter = api;
   }
 
   const api = {
-    install, showTab, showArea, ensureStructure, decorate, config: AREA_CONFIG,
+    install, showTab, showArea, ensureStructure, decorate, register, config: AREA_CONFIG,
     get currentArea() { return currentArea; },
     get currentTab() { return currentTab; }
   };
