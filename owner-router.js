@@ -18,24 +18,10 @@
   };
 
   const RENDERERS = {
-    dash: 'renderDashboard',
-    orders: 'renderOrders',
-    harnellorders: 'renderHarnellOrders',
-    retailorders: 'renderRetailOrders',
-    menu: 'renderMenuAdmin',
-    stock: 'renderStock',
-    costings: 'renderCostings',
-    cookbook: 'renderCookbook',
-    prep: 'renderPrep',
-    performance: 'renderPerformance',
-    targets: 'renderTargets',
-    dailyadmin: 'renderDailyAdmin',
-    costs: 'renderCostsOverheads',
-    banking: 'renderBanking',
-    catering: 'renderCateringAdmin',
-    harnell: 'renderHarnellAdmin',
-    fusionhome: 'renderFusionAtHome',
-    service: 'renderService'
+    dash: 'renderDashboard', orders: 'renderOrders', harnellorders: 'renderHarnellOrders', retailorders: 'renderRetailOrders',
+    menu: 'renderMenuAdmin', stock: 'renderStock', costings: 'renderCostings', cookbook: 'renderCookbook', prep: 'renderPrep',
+    performance: 'renderPerformance', targets: 'renderTargets', dailyadmin: 'renderDailyAdmin', costs: 'renderCostsOverheads', banking: 'renderBanking',
+    catering: 'renderCateringAdmin', harnell: 'renderHarnellAdmin', fusionhome: 'renderFusionAtHome', service: 'renderService'
   };
 
   const $ = id => document.getElementById(id);
@@ -66,9 +52,7 @@
   function rebuildOwnerMenu() {
     const menu = $('ownerNavMenu');
     if (!menu) return;
-    menu.innerHTML = Object.entries(AREA_CONFIG).map(([area, config]) =>
-      `<button type="button" data-area="${area}">${config.label}</button>`
-    ).join('');
+    menu.innerHTML = Object.entries(AREA_CONFIG).map(([area, config]) => `<button type="button" data-area="${area}">${config.label}</button>`).join('');
   }
 
   function ensureStructure() {
@@ -86,17 +70,13 @@
     const config = AREA_CONFIG[area] || AREA_CONFIG.dashboard;
     const current = $('ownerNavCurrent');
     if (current) current.textContent = config.label;
-    document.querySelectorAll('#ownerNavMenu [data-area]').forEach(button => {
-      button.classList.toggle('active', button.dataset.area === area);
-    });
+    document.querySelectorAll('#ownerNavMenu [data-area]').forEach(button => button.classList.toggle('active', button.dataset.area === area));
   }
 
   function ownerTabsHtml(area, tab) {
     const config = AREA_CONFIG[area];
     if (!config || config.tabs.length < 2) return '';
-    return `<div class="ownerAreaTabs" data-owner-router-tabs="true">${config.tabs.map(([id, label]) =>
-      `<button type="button" data-owner-tab="${id}" class="${id === tab ? 'active' : ''}">${label}</button>`
-    ).join('')}</div>`;
+    return `<div class="ownerAreaTabs" data-owner-router-tabs="true">${config.tabs.map(([id, label]) => `<button type="button" data-owner-tab="${id}" class="${id === tab ? 'active' : ''}">${label}</button>`).join('')}</div>`;
   }
 
   function decorate(area, tab) {
@@ -129,6 +109,7 @@
     if (tab === 'orders') window.FusionOrders?.apply?.();
     if (tab === 'catering') window.FusionCateringPolicy?.apply?.();
     if (tab === 'performance') await window.FusionFinance?.applyPerformanceView?.();
+    if (['menu','stock','costings','cookbook','prep'].includes(tab)) window.FusionKitchen?.afterRender?.(tab);
   }
 
   async function showTab(tab) {
@@ -159,9 +140,7 @@
     return showTab(AREA_CONFIG[area].tabs[0][0]);
   }
 
-  function toggleMenu() {
-    $('ownerNavMenu')?.classList.toggle('hidden');
-  }
+  function toggleMenu() { $('ownerNavMenu')?.classList.toggle('hidden'); }
 
   function installEvents() {
     const menu = $('ownerNavMenu');
@@ -188,18 +167,20 @@
     installed = true;
     ensureStructure();
     installEvents();
+
     window.showTab = showTab;
     window.showOwnerArea = showArea;
     window.toggleOwnerNav = toggleMenu;
+
+    // Older index render wrappers only used this to re-add Owner subtabs.
+    // The router now owns that responsibility, so their callback becomes a harmless compatibility no-op.
+    window.decorateOwnerPage = function legacyOwnerDecorationRetired() {};
+
     window.FusionOwnerRouter = api;
   }
 
   const api = {
-    install,
-    showTab,
-    showArea,
-    ensureStructure,
-    config: AREA_CONFIG,
+    install, showTab, showArea, ensureStructure, decorate, config: AREA_CONFIG,
     get currentArea() { return currentArea; },
     get currentTab() { return currentTab; }
   };
