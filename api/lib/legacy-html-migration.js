@@ -37,13 +37,14 @@ function ensureCanonicalOwnerShell(source) {
 function legacyShowTabDiagnostics(source) {
   const html = String(source || '');
   const out = [];
-  const re = /window\.showTab=t=>\{/ig;
+  const re = /window\.(showTab|showOwnerArea|showOwnerPage)\s*=/ig;
   let match;
   while ((match = re.exec(html))) {
     out.push({
+      name: match[1],
       index: match.index,
-      before: html.slice(Math.max(0, match.index - 220), match.index).replace(/\s+/g, ' '),
-      after: html.slice(match.index, Math.min(html.length, match.index + 700)).replace(/\s+/g, ' ')
+      before: html.slice(Math.max(0, match.index - 240), match.index).replace(/\s+/g, ' '),
+      after: html.slice(match.index, Math.min(html.length, match.index + 900)).replace(/\s+/g, ' ')
     });
   }
   return out;
