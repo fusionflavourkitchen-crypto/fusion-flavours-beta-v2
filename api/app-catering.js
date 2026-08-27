@@ -5,21 +5,18 @@ module.exports = async function handler(req, res) {
 
   res.send = function patchedSend(body) {
     if (typeof body === 'string' && /<\/body>/i.test(body)) {
-      // IMPORTANT: inject Delivery into the actual Owner dashboard markup.
-      // Do not use a broad "does the word delivery exist anywhere" test here,
-      // because legacy scripts contain delivery strings even when the visible
-      // Owner menu itself does not contain a Delivery button.
+      // Force the Delivery button into the same navigation group as Service.
+      // The source app has changed shape several times, so do not depend on a
+      // separate global delivery-string check here.
       const serviceButton = /(<button\s+data-area=["']service["'][^>]*>Service<\/button>)/i;
-      if (serviceButton.test(body) && !/<button\b[^>]*data-area=["']delivery["']/i.test(body)) {
+      if (serviceButton.test(body)) {
         body = body.replace(
           serviceButton,
-          '<button type="button" id="fusionDeliveryNavBtn" data-area="delivery" onclick="window.__fusionOpenDelivery&&window.__fusionOpenDelivery(event)">Delivery</button>\n$1'
+          '<button type="button" id="fusionDeliveryNavBtn" data-area="delivery">Delivery</button>\n$1'
         );
       }
 
-      // Add the physical Delivery owner page next to the other permanent owner
-      // pages on every request. Allow whitespace/content formatting around the
-      // Service placeholder so a harmless HTML formatting change cannot break it.
+      // Add the physical Delivery owner page beside Service when it is absent.
       const pageService = /(<div\s+id=["']page-service["'][^>]*>\s*<\/div>)/i;
       if (pageService.test(body) && !/id=["']page-delivery["']/i.test(body)) {
         body = body.replace(
@@ -40,17 +37,26 @@ window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCater
 </script>`);
       }
 
-      // Open Delivery directly instead of asking the legacy owner router to
-      // understand a tab that was added after the original app was written.
-      // The mount guard loaded below is the canonical click path and also
-      // repairs any stale/legacy navigation handler that survives startup.
       injections.push(`<script>
 (function(){
   var deliveryRetryTimer = null;
   var deliveryRetryCount = 0;
 
-  function renderDeliveryWhenReady(){
+  function ensureDeliveryPage(){
     var page=document.getElementById('page-delivery');
+    if(page) return page;
+    var anchor=document.getElementById('page-service') || document.querySelector('.ownerPage');
+    if(anchor && anchor.parentElement){
+      page=document.createElement('div');
+      page.id='page-delivery';
+      page.className='ownerPage hidden';
+      anchor.parentElement.insertBefore(page,anchor);
+    }
+    return page;
+  }
+
+  function renderDeliveryWhenReady(){
+    var page=ensureDeliveryPage();
     if(typeof window.refreshDeliveryManagement==='function'){
       deliveryRetryCount=0;
       if(deliveryRetryTimer){ clearTimeout(deliveryRetryTimer); deliveryRetryTimer=null; }
@@ -63,7 +69,7 @@ window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCater
     if(page && deliveryRetryCount===0){
       page.innerHTML='<h2>Delivery</h2><p class="muted">Loading delivery management…</p>';
     }
-    if(deliveryRetryCount<20){
+    if(deliveryRetryCount<30){
       deliveryRetryCount+=1;
       deliveryRetryTimer=setTimeout(renderDeliveryWhenReady,150);
     }else if(page){
@@ -72,20 +78,10 @@ window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCater
   }
 
   function openDelivery(ev){
-    if(ev){ try{ev.preventDefault();ev.stopPropagation();}catch(e){} }
+    if(ev){ try{ev.preventDefault();ev.stopPropagation();ev.stopImmediatePropagation();}catch(e){} }
     try{ if(typeof OWNER_AREAS!=='undefined') OWNER_AREAS.delivery=[['delivery','Delivery']]; }catch(e){}
 
-    var page=document.getElementById('page-delivery');
-    if(!page){
-      var anchor=document.getElementById('page-service')||document.querySelector('.ownerPage');
-      if(anchor&&anchor.parentElement){
-        page=document.createElement('div');
-        page.id='page-delivery';
-        page.className='ownerPage hidden';
-        anchor.parentElement.insertBefore(page,anchor);
-      }
-    }
-
+    var page=ensureDeliveryPage();
     document.querySelectorAll('.ownerPage').forEach(function(p){ p.classList.add('hidden'); });
     if(page) page.classList.remove('hidden');
 
@@ -94,6 +90,7 @@ window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCater
       menu.querySelectorAll('[data-area]').forEach(function(b){ b.classList.toggle('active',b.dataset.area==='delivery'); });
       menu.classList.add('hidden');
     }
+    document.querySelectorAll('[data-area="delivery"]').forEach(function(b){ b.classList.add('active'); });
     var current=document.getElementById('ownerNavCurrent');
     if(current) current.textContent='Delivery';
 
@@ -106,38 +103,47 @@ window.__fusionSaveCateringBooking = function(id){ try { return typeof saveCater
 
   function wire(){
     try{ if(typeof OWNER_AREAS!=='undefined') OWNER_AREAS.delivery=[['delivery','Delivery']]; }catch(e){}
+
     var menu=document.getElementById('ownerNavMenu');
-    if(!menu) return;
-    var btn=menu.querySelector('[data-area="delivery"]');
+    var service=(menu && menu.querySelector('[data-area="service"]')) || document.querySelector('button[data-area="service"]');
+    var parent=(menu || (service && service.parentElement));
+    if(!parent) return;
+
+    var btn=parent.querySelector('[data-area="delivery"]');
     if(!btn){
       btn=document.createElement('button');
       btn.type='button';
       btn.id='fusionDeliveryNavBtn';
       btn.dataset.area='delivery';
       btn.textContent='Delivery';
-      var service=menu.querySelector('[data-area="service"]');
-      if(service) menu.insertBefore(btn,service); else menu.appendChild(btn);
+      if(service) parent.insertBefore(btn,service); else parent.appendChild(btn);
     }
     btn.type='button';
+    btn.id='fusionDeliveryNavBtn';
+    btn.textContent='Delivery';
     btn.onclick=openDelivery;
+    btn.addEventListener('click',openDelivery,true);
+    ensureDeliveryPage();
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',wire,{once:true});
   else wire();
-  setTimeout(wire,100);
-  setTimeout(wire,500);
+  setTimeout(wire,50);
+  setTimeout(wire,250);
+  setTimeout(wire,750);
   setTimeout(wire,1500);
+  setTimeout(wire,3000);
 })();
 </script>`);
 
       if (!/src=["'][^"']*\/catering-policy\.js(?:[?"'])/i.test(body)) {
-        injections.push('<script src="/catering-policy.js?v=20260827b"></script>');
+        injections.push('<script src="/catering-policy.js?v=20260827c"></script>');
       }
       if (!/src=["'][^"']*\/delivery-management\.js(?:[?"'])/i.test(body)) {
-        injections.push('<script src="/delivery-management.js?v=20260827b"></script>');
+        injections.push('<script src="/delivery-management.js?v=20260827c"></script>');
       }
       if (!/src=["'][^"']*\/delivery-management-mount\.js(?:[?"'])/i.test(body)) {
-        injections.push('<script src="/delivery-management-mount.js?v=20260827b"></script>');
+        injections.push('<script src="/delivery-management-mount.js?v=20260827c"></script>');
       }
 
       if (injections.length) {
