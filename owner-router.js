@@ -1,6 +1,6 @@
 /* Fusion Flavours Owner Router
    Single source of truth for Owner navigation.
-   This deliberately bypasses the historical showTab/showOwnerArea wrapper chain in index.html.
+   Historical showTab/showOwnerArea wrapper chains in index.html are deliberately bypassed.
 */
 (() => {
   'use strict';
@@ -44,8 +44,8 @@
   let installed = false;
 
   function areaForTab(tab) {
-    for (const [area, cfg] of Object.entries(AREA_CONFIG)) {
-      if (cfg.tabs.some(([id]) => id === tab)) return area;
+    for (const [area, config] of Object.entries(AREA_CONFIG)) {
+      if (config.tabs.some(([id]) => id === tab)) return area;
     }
     return 'dashboard';
   }
@@ -66,13 +66,13 @@
   function rebuildOwnerMenu() {
     const menu = $('ownerNavMenu');
     if (!menu) return;
-    menu.innerHTML = Object.entries(AREA_CONFIG).map(([area, cfg]) =>
-      `<button type="button" data-area="${area}">${cfg.label}</button>`
+    menu.innerHTML = Object.entries(AREA_CONFIG).map(([area, config]) =>
+      `<button type="button" data-area="${area}">${config.label}</button>`
     ).join('');
   }
 
   function ensureStructure() {
-    Object.values(AREA_CONFIG).forEach(cfg => cfg.tabs.forEach(([tab]) => ensurePage(tab)));
+    Object.values(AREA_CONFIG).forEach(config => config.tabs.forEach(([tab]) => ensurePage(tab)));
     rebuildOwnerMenu();
   }
 
@@ -83,18 +83,18 @@
   function setCurrent(area, tab) {
     currentArea = area;
     currentTab = tab;
-    const cfg = AREA_CONFIG[area] || AREA_CONFIG.dashboard;
+    const config = AREA_CONFIG[area] || AREA_CONFIG.dashboard;
     const current = $('ownerNavCurrent');
-    if (current) current.textContent = cfg.label;
+    if (current) current.textContent = config.label;
     document.querySelectorAll('#ownerNavMenu [data-area]').forEach(button => {
       button.classList.toggle('active', button.dataset.area === area);
     });
   }
 
   function ownerTabsHtml(area, tab) {
-    const cfg = AREA_CONFIG[area];
-    if (!cfg || cfg.tabs.length < 2) return '';
-    return `<div class="ownerAreaTabs" data-owner-router-tabs="true">${cfg.tabs.map(([id, label]) =>
+    const config = AREA_CONFIG[area];
+    if (!config || config.tabs.length < 2) return '';
+    return `<div class="ownerAreaTabs" data-owner-router-tabs="true">${config.tabs.map(([id, label]) =>
       `<button type="button" data-owner-tab="${id}" class="${id === tab ? 'active' : ''}">${label}</button>`
     ).join('')}</div>`;
   }
@@ -107,38 +107,27 @@
     if (tabs) page.insertAdjacentHTML('afterbegin', tabs);
   }
 
-  async function renderDelivery() {
-    const page = ensurePage('delivery');
-    if (!page) return;
-    if (!page.innerHTML.trim()) {
-      page.innerHTML = '<h2>Delivery</h2><div class="notice">Loading delivery management…</div>';
-    }
-    if (typeof window.refreshDeliveryManagement === 'function') {
-      await window.refreshDeliveryManagement();
-      return;
-    }
-    let tries = 0;
-    await new Promise(resolve => {
-      const timer = setInterval(() => {
-        tries += 1;
-        if (typeof window.refreshDeliveryManagement === 'function' || tries >= 30) {
-          clearInterval(timer);
-          resolve();
-        }
-      }, 100);
-    });
-    if (typeof window.refreshDeliveryManagement === 'function') {
-      await window.refreshDeliveryManagement();
-    } else {
-      page.innerHTML = '<h2>Delivery</h2><div class="notice">Delivery management could not start. Refresh once; if this persists it is a code error, not a menu/cache issue.</div>';
+  async function prepare(tab) {
+    if (tab === 'catering' && typeof window.loadCateringOrders === 'function') {
+      const orders = window.ownerData?.cateringOrders;
+      if (!orders) await window.loadCateringOrders();
     }
   }
 
-  async function prepare(tab) {
-    if (tab === 'catering' && typeof window.loadCateringOrders === 'function') {
-      const orders = window.ownerData && window.ownerData.cateringOrders;
-      if (!orders) await window.loadCateringOrders();
+  async function render(tab) {
+    if (tab === 'delivery') {
+      if (typeof window.refreshDeliveryManagement !== 'function') {
+        throw new Error('Delivery module is not loaded');
+      }
+      await window.refreshDeliveryManagement();
+      return;
     }
+
+    const fnName = RENDERERS[tab];
+    const fn = fnName && window[fnName];
+    if (typeof fn === 'function') await fn();
+
+    if (tab === 'catering') window.FusionCateringPolicy?.apply();
   }
 
   async function showTab(tab) {
@@ -153,14 +142,8 @@
     setCurrent(area, tab);
 
     try {
-      if (tab === 'delivery') {
-        await renderDelivery();
-      } else {
-        await prepare(tab);
-        const fnName = RENDERERS[tab];
-        const fn = fnName && window[fnName];
-        if (typeof fn === 'function') await fn();
-      }
+      await prepare(tab);
+      await render(tab);
     } catch (error) {
       console.error(`Owner route ${tab} failed`, error);
       page.innerHTML = `<h2>${AREA_CONFIG[area]?.label || 'Owner'}</h2><div class="notice">This section failed to load: ${String(error?.message || error)}</div>`;
@@ -172,8 +155,7 @@
 
   function showArea(area) {
     area = AREA_CONFIG[area] ? area : 'dashboard';
-    const firstTab = AREA_CONFIG[area].tabs[0][0];
-    return showTab(firstTab);
+    return showTab(AREA_CONFIG[area].tabs[0][0]);
   }
 
   function toggleMenu() {
@@ -206,12 +188,10 @@
     ensureStructure();
     installEvents();
 
-    // Replace the historical wrapper chain with one stable API.
+    // One stable public navigation API. Old inline callers resolve these globals at click time.
     window.showTab = showTab;
     window.showOwnerArea = showArea;
     window.toggleOwnerNav = toggleMenu;
-
-    // Legacy inline buttons resolve these globals at click time, so all old callers now use this router too.
     window.FusionOwnerRouter = api;
   }
 
