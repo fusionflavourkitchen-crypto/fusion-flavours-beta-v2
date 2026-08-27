@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-20';
+const BUILD = '20260827-refactor-21';
 
 module.exports = async function handler(req, res) {
   try {
@@ -46,18 +46,30 @@ module.exports = async function handler(req, res) {
 
     html = html.replace(/<\/body>\s*<\/html>\s*$/i, `${bootstrap}\n<!-- fusion-build:${BUILD} -->\n</body></html>`);
 
+    const diagnostics = {
+      build: BUILD,
+      mode,
+      ownerRouter: html.includes(`/owner-router.js?v=${BUILD}`),
+      stateBridge: html.includes(`/legacy-state-bridge.js?v=${BUILD}`),
+      deliveryModule: html.includes(`/delivery-management.js?v=${BUILD}`),
+      financeCore: html.includes(`/business-finance-core.js?v=${BUILD}`),
+      financialPeriods: html.includes(`/financial-period-integration.js?v=${BUILD}`),
+      kitchenActions: html.includes(`/kitchen-actions-integration.js?v=${BUILD}`),
+      businessActions: html.includes(`/business-actions-integration.js?v=${BUILD}`),
+      runtime: html.includes(`/fusion-runtime.js?v=${BUILD}`),
+      buildMarker: html.includes(`fusion-build:${BUILD}`)
+    };
+
     const requestPath = String(req.url || '');
     if (requestPath.includes('/owner') || mode === 'owner') {
-      console.info('[FusionOwnerResponse]', JSON.stringify({
-        build: BUILD,
-        mode,
-        ownerRouter: html.includes(`/owner-router.js?v=${BUILD}`),
-        stateBridge: html.includes(`/legacy-state-bridge.js?v=${BUILD}`),
-        deliveryModule: html.includes(`/delivery-management.js?v=${BUILD}`),
-        kitchenActions: html.includes(`/kitchen-actions-integration.js?v=${BUILD}`),
-        businessActions: html.includes(`/business-actions-integration.js?v=${BUILD}`),
-        buildMarker: html.includes(`fusion-build:${BUILD}`)
-      }));
+      console.info('[FusionOwnerResponse]', JSON.stringify(diagnostics));
+    }
+
+    if (mode === 'owner' && String(req.query?.probe || '') === '1') {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.setHeader('X-Fusion-Build', BUILD);
+      return res.status(200).send(JSON.stringify({ok:Object.values(diagnostics).filter(v=>typeof v==='boolean').every(Boolean),...diagnostics}));
     }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
