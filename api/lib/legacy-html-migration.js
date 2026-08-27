@@ -54,7 +54,9 @@ function migrationFailures(source) {
   const failures = [];
   if (!/data-area=["']delivery["']/i.test(html)) failures.push('delivery-nav');
   if (!/id=["']page-delivery["']/i.test(html)) failures.push('delivery-page');
-  if (/window\.showTab=t=>\{/i.test(html)) failures.push('legacy-showtab');
+  if (/window\.showTab\s*=/i.test(html)) failures.push('legacy-showtab');
+  if (/window\.showOwnerArea\s*=/i.test(html)) failures.push('legacy-owner-area');
+  if (/window\.showOwnerPage\s*=/i.test(html)) failures.push('legacy-owner-page');
   if (/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\)/i.test(html)) failures.push('performance-timer');
   if (/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\)/i.test(html)) failures.push('period-timer');
   if (!/async function loadOwnerData\s*\(/i.test(html)) failures.push('owner-loader');
