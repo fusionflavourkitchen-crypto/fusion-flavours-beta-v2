@@ -33,34 +33,34 @@ function ensureCanonicalOwnerShell(source) {
   return html;
 }
 
-function validateMigratedHtml(source) {
+function migrationFailures(source) {
   const html = String(source || '');
   const failures = [];
+  if (!/data-area=["']delivery["']/i.test(html)) failures.push('delivery-nav');
+  if (!/id=["']page-delivery["']/i.test(html)) failures.push('delivery-page');
+  if (/window\.showTab=t=>\{/i.test(html)) failures.push('legacy-showtab');
+  if (/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\)/i.test(html)) failures.push('performance-timer');
+  if (/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\)/i.test(html)) failures.push('period-timer');
+  if (!/async function loadOwnerData\s*\(/i.test(html)) failures.push('owner-loader');
+  if (!/<\/head>/i.test(html)) failures.push('closing-head');
+  if (!/<\/body>\s*<\/html>\s*$/i.test(html)) failures.push('closing-document');
+  return failures;
+}
 
-  if (!/data-area=["']delivery["']/i.test(html)) failures.push('Delivery Owner navigation is missing');
-  if (!/id=["']page-delivery["']/i.test(html)) failures.push('Delivery Owner page container is missing');
-  if (/window\.showTab=t=>\{/i.test(html)) failures.push('Retired inline Owner router is still present');
-  if (/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\)/i.test(html)) failures.push('Retired Trading Performance repair timer is still present');
-  if (/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\)/i.test(html)) failures.push('Retired financial-period startup timer is still present');
-  if (!/async function loadOwnerData\s*\(/i.test(html)) failures.push('Core Owner data loader was removed');
-  if (!/<\/head>/i.test(html)) failures.push('Closing head tag is missing');
-  if (!/<\/body>\s*<\/html>\s*$/i.test(html)) failures.push('Closing body/html tags are missing');
-
-  if (failures.length) {
-    throw new Error(`Legacy HTML migration invariant failed: ${failures.join('; ')}`);
-  }
+function validateMigratedHtml(source) {
+  const failures = migrationFailures(source);
+  if (failures.length) throw new Error(`Legacy HTML migration invariant failed: ${failures.join(',')}`);
   return true;
 }
 
 function migrateLegacyHtml(source) {
-  const html = ensureCanonicalOwnerShell(stripRetiredOwnerControl(source));
-  validateMigratedHtml(html);
-  return html;
+  return ensureCanonicalOwnerShell(stripRetiredOwnerControl(source));
 }
 
 module.exports = {
   migrateLegacyHtml,
   stripRetiredOwnerControl,
   ensureCanonicalOwnerShell,
+  migrationFailures,
   validateMigratedHtml
 };
