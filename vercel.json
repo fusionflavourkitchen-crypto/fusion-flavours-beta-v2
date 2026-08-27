@@ -5,12 +5,15 @@
     },
     "api/app-catering.js": {
       "includeFiles": "index.html"
+    },
+    "api/owner.js": {
+      "includeFiles": "index.html"
     }
   },
   "rewrites": [
     {
       "source": "/owner",
-      "destination": "/api/app?mode=owner"
+      "destination": "/api/owner"
     },
     {
       "source": "/index.html",
