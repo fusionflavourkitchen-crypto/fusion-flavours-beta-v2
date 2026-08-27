@@ -1,7 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-21';
+const BUILD = '20260827-refactor-22';
+
+function stripLegacyRepairTimers(source) {
+  return source
+    .replace(/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\);?/g, '')
+    .replace(/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\);?/g, '');
+}
 
 module.exports = async function handler(req, res) {
   try {
@@ -11,7 +17,7 @@ module.exports = async function handler(req, res) {
     }
 
     const htmlPath = path.join(process.cwd(), 'index.html');
-    let html = fs.readFileSync(htmlPath, 'utf8');
+    let html = stripLegacyRepairTimers(fs.readFileSync(htmlPath, 'utf8'));
     const mode = String(req.query?.mode || '').toLowerCase();
 
     if (!/<\/head>/i.test(html) || !/<\/body>\s*<\/html>\s*$/i.test(html)) {
@@ -45,32 +51,6 @@ module.exports = async function handler(req, res) {
     ].join('\n');
 
     html = html.replace(/<\/body>\s*<\/html>\s*$/i, `${bootstrap}\n<!-- fusion-build:${BUILD} -->\n</body></html>`);
-
-    const diagnostics = {
-      build: BUILD,
-      mode,
-      ownerRouter: html.includes(`/owner-router.js?v=${BUILD}`),
-      stateBridge: html.includes(`/legacy-state-bridge.js?v=${BUILD}`),
-      deliveryModule: html.includes(`/delivery-management.js?v=${BUILD}`),
-      financeCore: html.includes(`/business-finance-core.js?v=${BUILD}`),
-      financialPeriods: html.includes(`/financial-period-integration.js?v=${BUILD}`),
-      kitchenActions: html.includes(`/kitchen-actions-integration.js?v=${BUILD}`),
-      businessActions: html.includes(`/business-actions-integration.js?v=${BUILD}`),
-      runtime: html.includes(`/fusion-runtime.js?v=${BUILD}`),
-      buildMarker: html.includes(`fusion-build:${BUILD}`)
-    };
-
-    const requestPath = String(req.url || '');
-    if (requestPath.includes('/owner') || mode === 'owner') {
-      console.info('[FusionOwnerResponse]', JSON.stringify(diagnostics));
-    }
-
-    if (mode === 'owner' && String(req.query?.probe || '') === '1') {
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-      res.setHeader('X-Fusion-Build', BUILD);
-      return res.status(200).send(JSON.stringify({ok:Object.values(diagnostics).filter(v=>typeof v==='boolean').every(Boolean),...diagnostics}));
-    }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
