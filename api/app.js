@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
+const { migrateLegacyHtml, migrationFailures, legacyShowTabDiagnostics } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260827-refactor-27';
+const BUILD = '20260827-refactor-28';
 
 module.exports = async function handler(req, res) {
   try {
@@ -56,9 +56,8 @@ module.exports = async function handler(req, res) {
         migrationIssues,
         deliveryNav: /data-area=["']delivery["']/i.test(html),
         deliveryPage: /id=["']page-delivery["']/i.test(html),
-        legacyShowTab: /window\.showTab=t=>\{/i.test(html),
+        legacyShowTabs: legacyShowTabDiagnostics(html),
         ownerLoaderAsync: /async function loadOwnerData\s*\(/i.test(html),
-        ownerLoaderAny: /(?:async\s+)?function loadOwnerData\s*\(/i.test(html),
         performanceTimer: /setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\)/i.test(html),
         periodTimer: /setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\)/i.test(html)
       }));
