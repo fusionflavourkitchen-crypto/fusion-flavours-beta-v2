@@ -94,5 +94,7 @@
     refundSummary();
   }
 
-  window.FusionOrders = { apply };
+  const api = { apply };
+  window.FusionOrders = api;
+  window.FusionOwnerRouter?.register?.('orders', { afterRender: apply });
 })();
