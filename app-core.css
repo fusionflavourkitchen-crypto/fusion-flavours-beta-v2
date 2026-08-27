@@ -1,0 +1,17 @@
+/* Fusion Flavours canonical core UI
+   New shared layout/navigation styles belong here, not in versioned blocks inside index.html.
+*/
+:root{--ff-dark:#171717;--ff-panel:#fffaf3;--ff-line:#e3d5c7}
+.hidden{display:none!important}
+.ownerNavBar{position:sticky;top:74px;z-index:35;background:var(--bg);padding:8px 0 6px}
+.ownerNavToggle{width:100%;background:var(--ff-dark);color:#fff;display:flex;justify-content:space-between;align-items:center;border:1px solid #3d3d3d}
+.ownerNavToggle span{color:var(--o);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.ownerNavMenu{margin-top:7px;background:var(--ff-panel);border:1px solid var(--line,var(--ff-line));border-radius:14px;padding:8px;box-shadow:0 10px 24px rgba(0,0,0,.16);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.ownerNavMenu button{background:#333;padding:10px 8px;font-size:13px;min-width:0}
+.ownerNavMenu button.active{background:var(--o)!important;color:#fff!important}
+.ownerAreaTabs{display:flex;gap:7px;overflow-x:auto;margin:0 0 12px;padding:2px 0 5px}
+.ownerAreaTabs button{white-space:nowrap;background:#e8ddd2;color:#2a241f;padding:9px 12px;border:1px solid #d5c4b3}
+.ownerAreaTabs button.active{background:var(--o);color:#fff;border-color:var(--o)}
+.ownerPage{min-width:0}
+@media(min-width:760px){.ownerNavMenu{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:520px){.ownerNavMenu{grid-template-columns:repeat(2,minmax(0,1fr))}.ownerNavMenu button{font-size:12px}}
