@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-5';
+const BUILD = '20260827-refactor-6';
 
 module.exports = async function handler(req, res) {
   try {
@@ -14,6 +14,12 @@ module.exports = async function handler(req, res) {
     let html = fs.readFileSync(htmlPath, 'utf8');
     const mode = String(req.query?.mode || '').toLowerCase();
 
+    if (!/<\/head>/i.test(html) || !/<\/body>\s*<\/html>\s*$/i.test(html)) {
+      throw new Error('index.html is missing required closing tags');
+    }
+
+    html = html.replace(/<\/head>/i, `<link rel="stylesheet" href="/app-core.css?v=${BUILD}">\n</head>`);
+
     const bootstrap = [
       `<script>window.__FUSION_BOOT_MODE__=${JSON.stringify(mode)};window.__fusionDeliveryTabHooked=true;window.__fusionDeliveryOwnerLoadHooked=true;window.__fusionDeliveryFinanceHooked=true;</script>`,
       `<script src="/owner-router.js?v=${BUILD}"></script>`,
@@ -22,12 +28,9 @@ module.exports = async function handler(req, res) {
       `<script src="/delivery-management.js?v=${BUILD}"></script>`,
       `<script src="/finance-integration.js?v=${BUILD}"></script>`,
       `<script src="/orders-integration.js?v=${BUILD}"></script>`,
+      `<script src="/kitchen-integration.js?v=${BUILD}"></script>`,
       `<script src="/fusion-runtime.js?v=${BUILD}"></script>`
     ].join('\n');
-
-    if (!/<\/body>\s*<\/html>\s*$/i.test(html)) {
-      throw new Error('index.html is missing its closing body/html tags');
-    }
 
     html = html.replace(/<\/body>\s*<\/html>\s*$/i, `${bootstrap}\n</body></html>`);
 
