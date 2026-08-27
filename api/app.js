@@ -19,6 +19,23 @@ module.exports = async function handler(req, res) {
       html = html.replace(legacyOwnerButton, directOwnerLink);
     }
 
+    // Delivery is a real top-level Owner area. Put it into the actual HTML that
+    // /owner serves, rather than relying on a later wrapper that this route never uses.
+    const serviceNav = '<button data-area="service" onclick="showOwnerArea(\'service\')">Service</button>';
+    if (!html.includes('data-area="delivery"') && html.includes(serviceNav)) {
+      html = html.replace(
+        serviceNav,
+        '<button data-area="delivery" onclick="showOwnerArea(\'delivery\')">Delivery</button>\n' + serviceNav
+      );
+    }
+
+    if (!html.includes('id="page-delivery"')) {
+      const servicePage = '<div id="page-service" class="ownerPage hidden"></div>';
+      if (html.includes(servicePage)) {
+        html = html.replace(servicePage, '<div id="page-delivery" class="ownerPage hidden"></div>' + servicePage);
+      }
+    }
+
     // Final navigation guard plus Harnell resident-menu grouping.
     const navFix = `
 <style>
@@ -87,11 +104,8 @@ module.exports = async function handler(req, res) {
 
   function harnellGroupFor(row){
     var itemName=String((row&&row.resident_name)||(row&&row.items&&row.items.name)||'').toLowerCase();
-    // Correct recognisable legacy products before reading old sort bands.
     if(/rubicon|coke|cola|sprite|fanta|water|juice|drink|lemonade/.test(itemName)) return 'drinks';
     if(/tiramisu|cake|brownie|dessert|baklava|sweet|pudding|cookie|cheesecake/.test(itemName)) return 'desserts';
-    // Harnell categories are stored in sort_order bands so they remain
-    // independent from the main delivery-menu category.
     var sortOrder=Number(row && row.sort_order || 0);
     if(sortOrder>=4000) return 'drinks';
     if(sortOrder>=3000) return 'desserts';
@@ -99,10 +113,6 @@ module.exports = async function handler(req, res) {
     if(sortOrder>=1000) return 'mains';
     var categoryId=Number(row && row.items && row.items.category_id || 0);
     var category=String(harnellCategoryNames[categoryId]||'').trim().toLowerCase();
-
-    // Use the real live category name rather than hard-coded database IDs.
-    // Specific category and product signals take priority over an inherited
-    // main-menu category on older Harnell rows.
     if(category.includes('drink')) return 'drinks';
     if(category.includes('dessert') || category.includes('sweet')) return 'desserts';
     if(category.includes('side') || category.includes('sauce')) return 'sides';
@@ -146,12 +156,7 @@ module.exports = async function handler(req, res) {
       var hWindow=String(s.harnell_delivery_start||'18:00').slice(0,5)+'–'+String(s.harnell_delivery_end||'20:00').slice(0,5);
       byId('harnellStatus').innerHTML=(harnellOpen()?'<b>🟢 Resident ordering open</b> · Order by '+String(s.harnell_cutoff_time||'15:00').slice(0,5):'<b>🔴 Resident ordering closed</b> · Cutoff '+String(s.harnell_cutoff_time||'15:00').slice(0,5))+'<br><b>🚪 Delivery window:</b> '+esc(hWindow);
 
-      var groups=[
-        ['mains','Mains'],
-        ['sides','Sides'],
-        ['drinks','Drinks'],
-        ['desserts','Desserts']
-      ];
+      var groups=[['mains','Mains'],['sides','Sides'],['drinks','Drinks'],['desserts','Desserts']];
       var menu=byId('harnellMenu');
       menu.className='';
       menu.innerHTML=groups.map(function(group){
@@ -165,39 +170,58 @@ module.exports = async function handler(req, res) {
     };
   }
 
-  installHarnellGrouping();
+  function installDeliveryArea(){
+    try{
+      if(typeof OWNER_AREAS!=='undefined') OWNER_AREAS.delivery=[['delivery','Delivery']];
+    }catch(e){}
 
-  // Fallback for any legacy #ownerEntry activation.
+    var oldShowOwnerArea=window.showOwnerArea;
+    window.showOwnerArea=function(area){
+      if(area==='delivery'){
+        document.querySelectorAll('.ownerPage').forEach(function(x){x.classList.add('hidden')});
+        var page=byId('page-delivery');
+        if(page) page.classList.remove('hidden');
+        var menu=byId('ownerNavMenu');
+        if(menu) menu.classList.add('hidden');
+        var current=byId('ownerNavCurrent');
+        if(current) current.textContent='Delivery';
+        document.querySelectorAll('.ownerNavMenu button').forEach(function(b){b.classList.toggle('active',b.dataset.area==='delivery')});
+        if(typeof window.refreshDeliveryManagement==='function'){
+          Promise.resolve(window.refreshDeliveryManagement()).catch(function(err){
+            if(page) page.innerHTML='<h2>Delivery</h2><div class="notice">Could not load Delivery: '+String(err&&err.message||err)+'</div>';
+          });
+        }else if(page){
+          page.innerHTML='<h2>Delivery</h2><p class="muted">Loading delivery management…</p>';
+          setTimeout(function(){ if(typeof window.refreshDeliveryManagement==='function') window.refreshDeliveryManagement(); },300);
+        }
+        window.scrollTo(0,0);
+        return;
+      }
+      return oldShowOwnerArea ? oldShowOwnerArea(area) : undefined;
+    };
+  }
+
+  installHarnellGrouping();
+  installDeliveryArea();
+
   document.addEventListener('click',function(e){
     var t=e.target && e.target.closest ? e.target.closest('#ownerEntry') : null;
     if(!t) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    showOwner(true);
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();showOwner(true);
   },true);
 
-  // Customer View from inside the owner area returns to the welcome hub.
   document.addEventListener('click',function(e){
     var t=e.target && e.target.closest ? e.target.closest('#customerBtn') : null;
     if(!t) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    showWelcome(true);
+    e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();showWelcome(true);
   },true);
 
-  // A contact number is required for live delivery orders. Guard the legacy
-  // checkout before its click handler runs so an order cannot be submitted
-  // without a number for delivery updates or courier contact.
   document.addEventListener('click',function(e){
     var t=e.target && e.target.closest ? e.target.closest('#orderBtn') : null;
     if(!t) return;
     var phone=byId('phone');
     if(phone && !String(phone.value||'').trim()){
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
+      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
       alert('Please enter a contact phone number.');
       try{ phone.focus(); }catch(err){}
     }
@@ -219,7 +243,9 @@ module.exports = async function handler(req, res) {
   }
   else showWelcome(false);
 })();
-</script>`;
+</script>
+<script src="/delivery-management.js?v=20260827-live"></script>
+<script src="/delivery-management-mount.js?v=20260827-live"></script>`;
 
     const output = html.replace(/<\/body>\s*<\/html>\s*$/i, navFix + '\n</body></html>');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
