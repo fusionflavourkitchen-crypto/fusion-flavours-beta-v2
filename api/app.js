@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-3';
+const BUILD = '20260827-refactor-4';
 
 module.exports = async function handler(req, res) {
   try {
@@ -21,6 +21,7 @@ module.exports = async function handler(req, res) {
       `<script src="/catering-policy.js?v=${BUILD}"></script>`,
       `<script src="/delivery-management.js?v=${BUILD}"></script>`,
       `<script src="/finance-integration.js?v=${BUILD}"></script>`,
+      `<script src="/orders-integration.js?v=${BUILD}"></script>`,
       `<script src="/fusion-runtime.js?v=${BUILD}"></script>`
     ].join('\n');
 
