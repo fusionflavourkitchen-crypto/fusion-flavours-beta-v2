@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-2';
+const BUILD = '20260827-refactor-3';
 
 module.exports = async function handler(req, res) {
   try {
@@ -15,11 +15,12 @@ module.exports = async function handler(req, res) {
     const mode = String(req.query?.mode || '').toLowerCase();
 
     const bootstrap = [
-      `<script>window.__FUSION_BOOT_MODE__=${JSON.stringify(mode)};window.__fusionDeliveryTabHooked=true;window.__fusionDeliveryOwnerLoadHooked=true;</script>`,
+      `<script>window.__FUSION_BOOT_MODE__=${JSON.stringify(mode)};window.__fusionDeliveryTabHooked=true;window.__fusionDeliveryOwnerLoadHooked=true;window.__fusionDeliveryFinanceHooked=true;</script>`,
       `<script src="/owner-router.js?v=${BUILD}"></script>`,
       `<script src="/harnell-public.js?v=${BUILD}"></script>`,
       `<script src="/catering-policy.js?v=${BUILD}"></script>`,
       `<script src="/delivery-management.js?v=${BUILD}"></script>`,
+      `<script src="/finance-integration.js?v=${BUILD}"></script>`,
       `<script src="/fusion-runtime.js?v=${BUILD}"></script>`
     ].join('\n');
 
