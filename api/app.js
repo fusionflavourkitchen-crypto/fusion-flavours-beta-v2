@@ -1,12 +1,34 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-22';
+const BUILD = '20260827-refactor-23';
 
 function stripLegacyRepairTimers(source) {
   return source
     .replace(/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\);?/g, '')
     .replace(/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\);?/g, '');
+}
+
+function ensureOwnerShell(source) {
+  let html = source;
+  const deliveryButton = '<button data-area="delivery" onclick="showOwnerArea(\'delivery\')">Delivery</button>';
+
+  if (!/data-area=["']delivery["']/i.test(html)) {
+    html = html.replace(/(<div\s+id=["']ownerNavMenu["'][^>]*>)([\s\S]*?)(<\/div>)/i, (all, open, body, close) => {
+      if (/data-area=["']service["']/i.test(body)) {
+        body = body.replace(/(<button\b[^>]*data-area=["']service["'][^>]*>)/i, `${deliveryButton}\n$1`);
+      } else {
+        body += `\n${deliveryButton}`;
+      }
+      return open + body + close;
+    });
+  }
+
+  if (!/id=["']page-delivery["']/i.test(html)) {
+    html = html.replace(/(<div\s+id=["']page-service["']\b)/i, '<div id="page-delivery" class="ownerPage hidden"></div>$1');
+  }
+
+  return html;
 }
 
 module.exports = async function handler(req, res) {
@@ -17,7 +39,7 @@ module.exports = async function handler(req, res) {
     }
 
     const htmlPath = path.join(process.cwd(), 'index.html');
-    let html = stripLegacyRepairTimers(fs.readFileSync(htmlPath, 'utf8'));
+    let html = ensureOwnerShell(stripLegacyRepairTimers(fs.readFileSync(htmlPath, 'utf8')));
     const mode = String(req.query?.mode || '').toLowerCase();
 
     if (!/<\/head>/i.test(html) || !/<\/body>\s*<\/html>\s*$/i.test(html)) {
@@ -61,6 +83,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.setHeader('X-Fusion-Build', BUILD);
+    if (mode === 'owner') res.setHeader('X-Fusion-Owner-Shell', 'delivery-present');
 
     if (req.method === 'HEAD') return res.status(200).end();
     return res.status(200).send(html);
