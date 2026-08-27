@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const { migrateLegacyHtml } = require('./lib/legacy-html-migration');
+const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260827-refactor-25';
+const BUILD = '20260827-refactor-26';
 
 module.exports = async function handler(req, res) {
   try {
@@ -13,6 +13,7 @@ module.exports = async function handler(req, res) {
 
     const htmlPath = path.join(process.cwd(), 'index.html');
     let html = migrateLegacyHtml(fs.readFileSync(htmlPath, 'utf8'));
+    const migrationIssues = migrationFailures(html);
     const mode = String(req.query?.mode || '').toLowerCase();
 
     if (!/<\/head>/i.test(html) || !/<\/body>\s*<\/html>\s*$/i.test(html)) {
@@ -56,6 +57,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.setHeader('X-Fusion-Build', BUILD);
+    res.setHeader('X-Fusion-Migration', migrationIssues.length ? migrationIssues.join(',') : 'ok');
     if (mode === 'owner') res.setHeader('X-Fusion-Owner-Shell', 'delivery-present');
 
     if (req.method === 'HEAD') return res.status(200).end();
