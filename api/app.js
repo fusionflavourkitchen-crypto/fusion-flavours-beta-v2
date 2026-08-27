@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-19';
+const BUILD = '20260827-refactor-20';
 
 module.exports = async function handler(req, res) {
   try {
@@ -35,6 +35,7 @@ module.exports = async function handler(req, res) {
       `<script src="/financial-period-integration.js?v=${BUILD}"></script>`,
       `<script src="/orders-integration.js?v=${BUILD}"></script>`,
       `<script src="/kitchen-integration.js?v=${BUILD}"></script>`,
+      `<script src="/kitchen-actions-integration.js?v=${BUILD}"></script>`,
       `<script src="/prep-integration.js?v=${BUILD}"></script>`,
       `<script src="/service-integration.js?v=${BUILD}"></script>`,
       `<script src="/catering-owner-integration.js?v=${BUILD}"></script>`,
@@ -43,7 +44,21 @@ module.exports = async function handler(req, res) {
       `<script src="/fusion-runtime.js?v=${BUILD}"></script>`
     ].join('\n');
 
-    html = html.replace(/<\/body>\s*<\/html>\s*$/i, `${bootstrap}\n</body></html>`);
+    html = html.replace(/<\/body>\s*<\/html>\s*$/i, `${bootstrap}\n<!-- fusion-build:${BUILD} -->\n</body></html>`);
+
+    const requestPath = String(req.url || '');
+    if (requestPath.includes('/owner') || mode === 'owner') {
+      console.info('[FusionOwnerResponse]', JSON.stringify({
+        build: BUILD,
+        mode,
+        ownerRouter: html.includes(`/owner-router.js?v=${BUILD}`),
+        stateBridge: html.includes(`/legacy-state-bridge.js?v=${BUILD}`),
+        deliveryModule: html.includes(`/delivery-management.js?v=${BUILD}`),
+        kitchenActions: html.includes(`/kitchen-actions-integration.js?v=${BUILD}`),
+        businessActions: html.includes(`/business-actions-integration.js?v=${BUILD}`),
+        buildMarker: html.includes(`fusion-build:${BUILD}`)
+      }));
+    }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
