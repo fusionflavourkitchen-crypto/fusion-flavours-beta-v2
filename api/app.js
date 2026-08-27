@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const BUILD = '20260827-refactor-1';
+
 module.exports = async function handler(req, res) {
   try {
     if (req.method && !['GET', 'HEAD'].includes(req.method)) {
@@ -14,9 +16,11 @@ module.exports = async function handler(req, res) {
 
     const bootstrap = [
       `<script>window.__FUSION_BOOT_MODE__=${JSON.stringify(mode)};</script>`,
-      '<script src="/fusion-runtime.js?v=20260827-owner-clean-v2"></script>',
-      '<script src="/catering-policy.js?v=20260827-owner-clean-v2"></script>',
-      '<script src="/delivery-management.js?v=20260827-owner-clean-v2"></script>'
+      `<script src="/owner-router.js?v=${BUILD}"></script>`,
+      `<script src="/harnell-public.js?v=${BUILD}"></script>`,
+      `<script src="/catering-policy.js?v=${BUILD}"></script>`,
+      `<script src="/delivery-management.js?v=${BUILD}"></script>`,
+      `<script src="/fusion-runtime.js?v=${BUILD}"></script>`
     ].join('\n');
 
     if (!/<\/body>\s*<\/html>\s*$/i.test(html)) {
@@ -33,7 +37,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    res.setHeader('X-Fusion-Build', 'owner-clean-v2-20260827');
+    res.setHeader('X-Fusion-Build', BUILD);
 
     if (req.method === 'HEAD') return res.status(200).end();
     return res.status(200).send(html);
