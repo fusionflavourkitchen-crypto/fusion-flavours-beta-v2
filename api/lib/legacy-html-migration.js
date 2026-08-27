@@ -27,10 +27,25 @@ function ensureCanonicalOwnerShell(source) {
   }
 
   if (!/id=["']page-delivery["']/i.test(html)) {
-    html = html.replace(/(<div\s+id=["']page-service["']\b)/i, '<div id="page-delivery" class="ownerPage hidden"></div>$1');
+    html = html.replace(/(<div\s+id=["']page-service["'][^>]*>)/i, '<div id="page-delivery" class="ownerPage hidden"></div>$1');
   }
 
   return html;
+}
+
+function legacyShowTabDiagnostics(source) {
+  const html = String(source || '');
+  const out = [];
+  const re = /window\.showTab=t=>\{/ig;
+  let match;
+  while ((match = re.exec(html))) {
+    out.push({
+      index: match.index,
+      before: html.slice(Math.max(0, match.index - 220), match.index).replace(/\s+/g, ' '),
+      after: html.slice(match.index, Math.min(html.length, match.index + 700)).replace(/\s+/g, ' ')
+    });
+  }
+  return out;
 }
 
 function migrationFailures(source) {
@@ -61,6 +76,7 @@ module.exports = {
   migrateLegacyHtml,
   stripRetiredOwnerControl,
   ensureCanonicalOwnerShell,
+  legacyShowTabDiagnostics,
   migrationFailures,
   validateMigratedHtml
 };
