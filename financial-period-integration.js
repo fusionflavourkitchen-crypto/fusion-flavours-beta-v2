@@ -9,6 +9,14 @@
     catch (_) { return `£${Number(value || 0).toFixed(2)}`; }
   }
 
+  function initialiseSelection() {
+    try {
+      if (typeof currentFinancialPeriod !== 'function') return;
+      const period = currentFinancialPeriod();
+      if (period?.no) pnlSelectedPeriod = Number(period.no);
+    } catch (_) {}
+  }
+
   function selectedRange() {
     try {
       if (typeof pnlRange === 'function') return pnlRange();
@@ -110,7 +118,9 @@
     } catch (error) { alert(error?.message || String(error)); }
   }
 
-  const api = { calculateRange, selectedData, previousData, report, email, exportCsv };
+  initialiseSelection();
+
+  const api = { initialiseSelection, calculateRange, selectedData, previousData, report, email, exportCsv };
   window.FusionFinancialPeriods = api;
   window.performanceDataForRange = calculateRange;
   window.selectedPnlData = selectedData;
