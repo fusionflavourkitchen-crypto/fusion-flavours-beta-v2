@@ -112,13 +112,14 @@
       const orders = window.ownerData?.cateringOrders;
       if (!orders) await window.loadCateringOrders();
     }
+    if (tab === 'performance') {
+      await window.FusionFinance?.load?.(true);
+    }
   }
 
   async function render(tab) {
     if (tab === 'delivery') {
-      if (typeof window.refreshDeliveryManagement !== 'function') {
-        throw new Error('Delivery module is not loaded');
-      }
+      if (typeof window.refreshDeliveryManagement !== 'function') throw new Error('Delivery module is not loaded');
       await window.refreshDeliveryManagement();
       return;
     }
@@ -127,7 +128,8 @@
     const fn = fnName && window[fnName];
     if (typeof fn === 'function') await fn();
 
-    if (tab === 'catering') window.FusionCateringPolicy?.apply();
+    if (tab === 'catering') window.FusionCateringPolicy?.apply?.();
+    if (tab === 'performance') await window.FusionFinance?.applyPerformanceView?.();
   }
 
   async function showTab(tab) {
@@ -187,8 +189,6 @@
     installed = true;
     ensureStructure();
     installEvents();
-
-    // One stable public navigation API. Old inline callers resolve these globals at click time.
     window.showTab = showTab;
     window.showOwnerArea = showArea;
     window.toggleOwnerNav = toggleMenu;
