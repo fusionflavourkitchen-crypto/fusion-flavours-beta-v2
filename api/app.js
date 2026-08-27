@@ -1,36 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const { migrateLegacyHtml } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260827-refactor-24';
-
-function stripLegacyOwnerControl(source) {
-  return source
-    .replace(/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\);?/g, '')
-    .replace(/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\);?/g, '')
-    .replace(/window\.showTab=t=>\{[\s\S]*?\}\s*\nasync function loadOwnerData/i, 'async function loadOwnerData');
-}
-
-function ensureOwnerShell(source) {
-  let html = source;
-  const deliveryButton = '<button data-area="delivery" onclick="showOwnerArea(\'delivery\')">Delivery</button>';
-
-  if (!/data-area=["']delivery["']/i.test(html)) {
-    html = html.replace(/(<div\s+id=["']ownerNavMenu["'][^>]*>)([\s\S]*?)(<\/div>)/i, (all, open, body, close) => {
-      if (/data-area=["']service["']/i.test(body)) {
-        body = body.replace(/(<button\b[^>]*data-area=["']service["'][^>]*>)/i, `${deliveryButton}\n$1`);
-      } else {
-        body += `\n${deliveryButton}`;
-      }
-      return open + body + close;
-    });
-  }
-
-  if (!/id=["']page-delivery["']/i.test(html)) {
-    html = html.replace(/(<div\s+id=["']page-service["']\b)/i, '<div id="page-delivery" class="ownerPage hidden"></div>$1');
-  }
-
-  return html;
-}
+const BUILD = '20260827-refactor-25';
 
 module.exports = async function handler(req, res) {
   try {
@@ -40,7 +12,7 @@ module.exports = async function handler(req, res) {
     }
 
     const htmlPath = path.join(process.cwd(), 'index.html');
-    let html = ensureOwnerShell(stripLegacyOwnerControl(fs.readFileSync(htmlPath, 'utf8')));
+    let html = migrateLegacyHtml(fs.readFileSync(htmlPath, 'utf8'));
     const mode = String(req.query?.mode || '').toLowerCase();
 
     if (!/<\/head>/i.test(html) || !/<\/body>\s*<\/html>\s*$/i.test(html)) {
