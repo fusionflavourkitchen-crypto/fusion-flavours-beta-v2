@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-7';
+const BUILD = '20260827-refactor-8';
 
 module.exports = async function handler(req, res) {
   try {
