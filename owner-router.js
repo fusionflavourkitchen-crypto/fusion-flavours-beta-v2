@@ -112,9 +112,7 @@
       const orders = window.ownerData?.cateringOrders;
       if (!orders) await window.loadCateringOrders();
     }
-    if (tab === 'performance') {
-      await window.FusionFinance?.load?.(true);
-    }
+    if (tab === 'performance') await window.FusionFinance?.load?.(true);
   }
 
   async function render(tab) {
@@ -128,6 +126,7 @@
     const fn = fnName && window[fnName];
     if (typeof fn === 'function') await fn();
 
+    if (tab === 'orders') window.FusionOrders?.apply?.();
     if (tab === 'catering') window.FusionCateringPolicy?.apply?.();
     if (tab === 'performance') await window.FusionFinance?.applyPerformanceView?.();
   }
