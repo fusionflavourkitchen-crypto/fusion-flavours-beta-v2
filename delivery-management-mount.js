@@ -2,32 +2,52 @@
 (() => {
   'use strict';
 
-  if (window.__fusionDeliveryMountGuardLoaded) return;
-  window.__fusionDeliveryMountGuardLoaded = true;
+  const MOUNT_VERSION = '2026-08-27.2';
+  if (window.__fusionDeliveryMountGuardLoaded === MOUNT_VERSION) return;
+  window.__fusionDeliveryMountGuardLoaded = MOUNT_VERSION;
+  window.__fusionDeliveryMountVersion = MOUNT_VERSION;
 
   const byId = id => document.getElementById(id);
   let repairTimer = null;
+  let renderRetryTimer = null;
+  let renderRetryCount = 0;
 
   function ensureDeliveryAreaDefinition() {
     try {
-      if (typeof OWNER_AREAS !== 'undefined') {
+      if (typeof OWNER_AREAS !== 'undefined' && OWNER_AREAS) {
         OWNER_AREAS.delivery = [['delivery', 'Delivery']];
       }
     } catch (_) {}
   }
 
+  function ownerPagesParent() {
+    const service = byId('page-service');
+    const orders = byId('page-orders');
+    const dash = byId('page-dash');
+    return service?.parentElement || orders?.parentElement || dash?.parentElement || document.querySelector('.ownerPage')?.parentElement || null;
+  }
+
   function ensureDeliveryPage() {
     let page = byId('page-delivery');
-    if (page) return page;
+    const service = byId('page-service');
+    const parent = ownerPagesParent();
+    if (!parent) return page || null;
 
-    const anchor = byId('page-orders') || byId('page-service') || document.querySelector('.ownerPage');
-    const parent = anchor && anchor.parentElement;
-    if (!parent) return null;
+    if (!page) {
+      page = document.createElement('div');
+      page.id = 'page-delivery';
+      page.className = 'ownerPage hidden';
+    }
 
-    page = document.createElement('div');
-    page.id = 'page-delivery';
-    page.className = 'ownerPage hidden';
-    parent.appendChild(page);
+    // Delivery must be a sibling of the permanent Owner pages. If an older
+    // injection accidentally nested it inside Service, move it out before
+    // trying to show it; a visible child of a hidden Service page is still hidden.
+    if (page.parentElement !== parent || (service && page.nextElementSibling !== service)) {
+      if (service && service.parentElement === parent) parent.insertBefore(page, service);
+      else parent.appendChild(page);
+    }
+
+    if (!page.classList.contains('ownerPage')) page.classList.add('ownerPage');
     return page;
   }
 
@@ -35,20 +55,25 @@
     ensureDeliveryAreaDefinition();
 
     const menu = byId('ownerNavMenu');
-    if (!menu) return;
+    if (!menu) return null;
 
     let button = menu.querySelector('[data-area="delivery"]');
     if (!button) {
       button = document.createElement('button');
       button.type = 'button';
+      button.id = 'fusionDeliveryNavBtn';
       button.dataset.area = 'delivery';
       button.textContent = 'Delivery';
-      button.addEventListener('click', () => activateDelivery());
 
-      const orders = menu.querySelector('[data-area="orders"]');
-      if (orders && orders.nextSibling) menu.insertBefore(button, orders.nextSibling);
+      const service = menu.querySelector('[data-area="service"]');
+      if (service) menu.insertBefore(button, service);
       else menu.appendChild(button);
     }
+
+    button.type = 'button';
+    button.dataset.area = 'delivery';
+    if (!button.textContent.trim()) button.textContent = 'Delivery';
+    return button;
   }
 
   function setDeliveryNavState() {
@@ -57,15 +82,61 @@
       menu.querySelectorAll('[data-area]').forEach(node => {
         const active = node.dataset.area === 'delivery';
         node.classList.toggle('active', active);
-        node.setAttribute('aria-current', active ? 'page' : 'false');
+        if (active) node.setAttribute('aria-current', 'page');
+        else node.removeAttribute('aria-current');
       });
+      menu.classList.add('hidden');
     }
 
     const current = byId('ownerNavCurrent');
     if (current) current.textContent = 'Delivery';
   }
 
-  function activateDelivery() {
+  function setOwnerState() {
+    try { if (typeof ownerArea !== 'undefined') ownerArea = 'delivery'; } catch (_) {}
+    try { if (typeof activeTab !== 'undefined') activeTab = 'delivery'; } catch (_) {}
+  }
+
+  function renderDeliveryWhenReady() {
+    const page = ensureDeliveryPage();
+    if (!page) return;
+
+    if (typeof window.refreshDeliveryManagement === 'function') {
+      renderRetryCount = 0;
+      if (renderRetryTimer) {
+        clearTimeout(renderRetryTimer);
+        renderRetryTimer = null;
+      }
+      try {
+        Promise.resolve(window.refreshDeliveryManagement()).catch(error => {
+          console.error('Delivery Management render failed', error);
+          page.innerHTML = `<h2>Delivery</h2><div class="notice">Could not load Delivery: ${String(error?.message || error)}</div>`;
+        });
+      } catch (error) {
+        console.error('Delivery Management render failed', error);
+        page.innerHTML = `<h2>Delivery</h2><div class="notice">Could not load Delivery: ${String(error?.message || error)}</div>`;
+      }
+      return;
+    }
+
+    if (renderRetryCount === 0) {
+      page.innerHTML = '<h2>Delivery</h2><p class="muted">Loading delivery management…</p>';
+    }
+    if (renderRetryCount < 20) {
+      renderRetryCount += 1;
+      renderRetryTimer = setTimeout(renderDeliveryWhenReady, 150);
+    } else {
+      page.innerHTML = '<h2>Delivery</h2><div class="notice">Delivery Management did not finish loading. Refresh the app once and try again.</div>';
+    }
+  }
+
+  function activateDelivery(event) {
+    if (event) {
+      try { event.preventDefault(); } catch (_) {}
+      try { event.stopPropagation(); } catch (_) {}
+      try { event.stopImmediatePropagation(); } catch (_) {}
+    }
+
     const page = ensureDeliveryPage();
     ensureDeliveryNav();
     if (!page) return false;
@@ -75,53 +146,52 @@
       else node.classList.add('hidden');
     });
 
-    try {
-      if (typeof activeTab !== 'undefined') activeTab = 'delivery';
-    } catch (_) {}
-
+    setOwnerState();
     setDeliveryNavState();
+    renderDeliveryWhenReady();
 
-    queueMicrotask(() => {
-      try {
-        if (typeof window.refreshDeliveryManagement === 'function') {
-          window.refreshDeliveryManagement();
-        }
-      } catch (error) {
-        console.error('Delivery Management render failed', error);
-      }
-    });
-
+    try { window.scrollTo(0, 0); } catch (_) {}
     return true;
   }
 
+  // One canonical entry point. The server-injected button resolves this at click
+  // time, so this replaces older open logic without having to rewrite index.html.
   window.__fusionActivateDelivery = activateDelivery;
+  window.__fusionOpenDelivery = activateDelivery;
+  window.openDeliveryManagement = activateDelivery;
 
   function patchShowTab() {
     const current = window.showTab;
-    if (typeof current !== 'function' || current.__fusionDeliveryMountWrapper) return;
+    if (typeof current !== 'function' || current.__fusionDeliveryMountWrapper === MOUNT_VERSION) return;
 
     function wrappedShowTab(tab, ...args) {
       if (tab === 'delivery') return activateDelivery();
       return current.call(this, tab, ...args);
     }
 
-    wrappedShowTab.__fusionDeliveryMountWrapper = true;
+    wrappedShowTab.__fusionDeliveryMountWrapper = MOUNT_VERSION;
     wrappedShowTab.__fusionDeliveryWrappedFunction = current;
     window.showTab = wrappedShowTab;
   }
 
   function patchShowOwnerArea() {
     const current = window.showOwnerArea;
-    if (typeof current !== 'function' || current.__fusionDeliveryMountWrapper) return;
+    if (typeof current !== 'function' || current.__fusionDeliveryMountWrapper === MOUNT_VERSION) return;
 
     function wrappedShowOwnerArea(area, ...args) {
       if (area === 'delivery') return activateDelivery();
       return current.call(this, area, ...args);
     }
 
-    wrappedShowOwnerArea.__fusionDeliveryMountWrapper = true;
+    wrappedShowOwnerArea.__fusionDeliveryMountWrapper = MOUNT_VERSION;
     wrappedShowOwnerArea.__fusionDeliveryWrappedFunction = current;
     window.showOwnerArea = wrappedShowOwnerArea;
+  }
+
+  function interceptDeliveryNavigation(event) {
+    const target = event.target?.closest?.('[data-area="delivery"]');
+    if (!target) return;
+    activateDelivery(event);
   }
 
   function repair() {
@@ -129,6 +199,8 @@
     ensureDeliveryNav();
     patchShowTab();
     patchShowOwnerArea();
+    // A legacy inline script may replace this function after initial load.
+    window.__fusionOpenDelivery = activateDelivery;
   }
 
   function scheduleRepair() {
@@ -141,15 +213,15 @@
 
   function start() {
     repair();
+    document.addEventListener('click', interceptDeliveryNavigation, true);
 
-    // The owner dashboard rebuilds parts of its navigation after data loads.
-    // Re-attach Delivery whenever that happens, and re-wrap navigation if a
-    // later script replaces showTab/showOwnerArea. Debounce the repair so a
-    // large dashboard render causes one repair rather than dozens.
     const observer = new MutationObserver(scheduleRepair);
     observer.observe(document.body, { childList: true, subtree: true });
     window.__fusionDeliveryMountObserver = observer;
 
+    // Re-wrap navigation for a short startup window because the Owner dashboard
+    // replaces some globals after data loads. The click interceptor remains as a
+    // permanent final guard after this interval ends.
     let attempts = 0;
     const interval = setInterval(() => {
       repair();
