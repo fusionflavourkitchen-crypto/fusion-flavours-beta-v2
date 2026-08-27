@@ -21,7 +21,7 @@
     dash: 'renderDashboard', orders: 'renderOrders', harnellorders: 'renderHarnellOrders', retailorders: 'renderRetailOrders',
     menu: 'renderMenuAdmin', stock: 'renderStock', costings: 'renderCostings', cookbook: 'renderCookbook', prep: 'renderPrep',
     performance: 'renderPerformance', targets: 'renderTargets', dailyadmin: 'renderDailyAdmin', costs: 'renderCostsOverheads', banking: 'renderBanking',
-    catering: 'renderCateringAdmin', harnell: 'renderHarnellAdmin', fusionhome: 'renderFusionAtHome', service: 'renderService'
+    catering: 'renderCateringAdmin', harnell: 'renderHarnellAdmin', fusionhome: 'renderFusionAtHome', delivery: 'refreshDeliveryManagement', service: 'renderService'
   };
 
   const LIFECYCLE = new Map();
@@ -104,7 +104,8 @@
   async function renderBase(tab) {
     const fnName = RENDERERS[tab];
     const fn = fnName && window[fnName];
-    if (typeof fn === 'function') await fn();
+    if (typeof fn !== 'function') throw new Error(`Owner renderer is not available for ${tab}`);
+    await fn();
   }
 
   async function runLifecycle(tab) {
@@ -169,7 +170,6 @@
     installed = true;
     ensureStructure();
     installEvents();
-
     window.showTab = showTab;
     window.showOwnerArea = showArea;
     window.toggleOwnerNav = toggleMenu;
