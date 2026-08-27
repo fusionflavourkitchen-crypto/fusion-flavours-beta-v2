@@ -37,6 +37,16 @@
     return state.loading;
   }
 
+  async function loadFeatureFinanceData() {
+    await load(true);
+    try {
+      if (typeof loadHarnellOwnerData === 'function') await loadHarnellOwnerData();
+      else if (typeof window.loadHarnellOwnerData === 'function') await window.loadHarnellOwnerData();
+    } catch (error) {
+      console.warn('Harnell finance data', error);
+    }
+  }
+
   function courierCostForRange(start, end) {
     return state.jobs
       .filter(job => {
@@ -48,7 +58,8 @@
   }
 
   async function performanceSnapshot(force = false) {
-    await load(force);
+    if (force) await loadFeatureFinanceData();
+    else await load(false);
     if (typeof window.performanceData !== 'function') return null;
     const base = window.performanceData();
     if (!base) return null;
@@ -67,7 +78,7 @@
   async function applyPerformanceView() {
     const page = $('page-performance');
     if (!page) return;
-    const data = await performanceSnapshot(true);
+    const data = await performanceSnapshot(false);
     if (!data) return;
 
     page.querySelectorAll('[data-finance-delivery-card]').forEach(node => node.remove());
@@ -110,10 +121,10 @@
     };
   }
 
-  const api = { load, courierCostForRange, performanceSnapshot, applyPerformanceView, closeFinancialPnl, enrichReport, state };
+  const api = { load, loadFeatureFinanceData, courierCostForRange, performanceSnapshot, applyPerformanceView, closeFinancialPnl, enrichReport, state };
   window.FusionFinance = api;
   window.FusionOwnerRouter?.register?.('performance', {
-    beforeRender: () => load(true),
+    beforeRender: loadFeatureFinanceData,
     afterRender: applyPerformanceView
   });
 })();
