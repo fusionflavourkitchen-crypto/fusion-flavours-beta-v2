@@ -75,8 +75,7 @@
       deliveryCard.innerHTML = `${moneyValue(data.deliveryCourierCost)}<small>Delivery / courier costs</small>`;
       cards.appendChild(deliveryCard);
 
-      const profitCards = cards.querySelectorAll('.performanceCard');
-      const profitCard = profitCards[3];
+      const profitCard = cards.querySelectorAll('.performanceCard')[3];
       if (profitCard) {
         profitCard.classList.toggle('good', data.operatingProfitAfterDelivery >= 0);
         profitCard.classList.toggle('bad', data.operatingProfitAfterDelivery < 0);
@@ -90,8 +89,7 @@
       note.className = 'notice';
       note.dataset.financeDeliveryNote = 'true';
       const firstDetail = page.querySelector('.performanceDetail');
-      if (firstDetail) firstDetail.parentNode.insertBefore(note, firstDetail);
-      else page.appendChild(note);
+      if (firstDetail) firstDetail.parentNode.insertBefore(note, firstDetail); else page.appendChild(note);
     }
     note.innerHTML = `<b>Delivery costs included:</b> ${moneyValue(data.deliveryCourierCost)} for ${data.start}${data.end !== data.start ? ` → ${data.end}` : ''}.`;
   }
@@ -107,12 +105,10 @@
     };
   }
 
-  window.FusionFinance = {
-    load,
-    courierCostForRange,
-    performanceSnapshot,
-    applyPerformanceView,
-    enrichReport,
-    state
-  };
+  const api = { load, courierCostForRange, performanceSnapshot, applyPerformanceView, enrichReport, state };
+  window.FusionFinance = api;
+  window.FusionOwnerRouter?.register?.('performance', {
+    beforeRender: () => load(true),
+    afterRender: applyPerformanceView
+  });
 })();
