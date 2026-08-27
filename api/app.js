@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const BUILD = '20260827-refactor-15';
+const BUILD = '20260827-refactor-16';
 
 module.exports = async function handler(req, res) {
   try {
@@ -31,6 +31,7 @@ module.exports = async function handler(req, res) {
       `<script src="/business-finance-core.js?v=${BUILD}"></script>`,
       `<script src="/finance-integration.js?v=${BUILD}"></script>`,
       `<script src="/pnl-reporting.js?v=${BUILD}"></script>`,
+      `<script src="/financial-period-integration.js?v=${BUILD}"></script>`,
       `<script src="/orders-integration.js?v=${BUILD}"></script>`,
       `<script src="/kitchen-integration.js?v=${BUILD}"></script>`,
       `<script src="/prep-integration.js?v=${BUILD}"></script>`,
