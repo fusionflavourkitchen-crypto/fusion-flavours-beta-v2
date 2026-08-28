@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260828-refactor-32';
+const BUILD = '20260828-refactor-33';
 
 module.exports = async function handler(req, res) {
   try {
