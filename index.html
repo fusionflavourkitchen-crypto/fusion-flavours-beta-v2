@@ -4673,4 +4673,82 @@ try{(function(){
 })();}catch(e){document.documentElement.dataset.refundError=String(e);console.error('Refund module failed:',e)}
 </script>
 
+
+<script>
+/* FF_OWNER_DELIVERY_HOTFIX_20260828 */
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const ownerRequested=()=>{
+ const v=new URLSearchParams(location.search).get('view');
+ const p=location.pathname.replace(/\/+$/,'').toLowerCase();
+ return v==='owner'||p==='/owner'||p.endsWith('/owner.html');
+};
+function revealOwner(){
+ if(!ownerRequested())return;
+ document.documentElement.classList.remove('ff-booting');
+ document.documentElement.removeAttribute('data-initial-view');
+ ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(id=>$(id)?.classList.add('hidden'));
+ $('owner')?.classList.remove('hidden');
+ try{if(window.token&&typeof window.openOwner==='function')window.openOwner()}catch(e){}
+}
+function page(){
+ let p=$('page-delivery');
+ if(!p){
+   const a=$('page-service')||document.querySelector('.ownerPage:last-of-type');
+   if(a){p=document.createElement('div');p.id='page-delivery';p.className='ownerPage hidden';a.after(p)}
+ }
+ let n=$('ownerDelivery');
+ if(!n){
+   const a=$('ownerService')||document.querySelector('.owner-page:last-of-type');
+   if(a){n=document.createElement('div');n.id='ownerDelivery';n.className='owner-page hidden';n.style.display='none';a.after(n)}
+ }
+ return p||n;
+}
+function buttons(){
+ const m=$('ownerNavMenu');
+ if(m&&!m.querySelector('[data-area="delivery"]')){
+   const b=document.createElement('button');b.type='button';b.dataset.area='delivery';b.textContent='Delivery';
+   b.onclick=()=>window.showOwnerArea?window.showOwnerArea('delivery'):window.showTab?.('delivery');
+   const s=m.querySelector('[data-area="service"]');s?s.after(b):m.append(b);
+ }
+ const n=$('ownerMenuItems');
+ if(n&&!n.querySelector('[data-owner-delivery]')){
+   const b=document.createElement('button');b.type='button';b.className='owner-tab';b.dataset.ownerDelivery='1';b.textContent='Delivery';
+   b.onclick=()=>window.showTab?.('delivery');
+   const s=[...n.querySelectorAll('button')].find(x=>/service/i.test(x.textContent||''));s?s.after(b):n.append(b);
+ }
+}
+function load(done){
+ if(window.FusionDelivery){done();return}
+ let s=$('fusionDeliveryModule');
+ if(!s){s=document.createElement('script');s.id='fusionDeliveryModule';s.src='/delivery-management.js?v=20260828b';s.onload=done;s.onerror=()=>{const h=page();if(h)h.innerHTML='<div class="panel"><h2>Delivery</h2><p>Delivery Management failed to load. Refresh once.</p></div>'};document.body.append(s)}
+ else s.addEventListener('load',done,{once:true});
+}
+function show(){
+ const h=page();buttons();
+ document.querySelectorAll('.ownerPage').forEach(x=>x.classList.add('hidden'));
+ document.querySelectorAll('.owner-page').forEach(x=>{x.classList.add('hidden');x.style.display='none'});
+ const a=$('page-delivery');if(a)a.classList.remove('hidden');
+ const n=$('ownerDelivery');if(n){n.classList.remove('hidden');n.style.display='block'}
+ $('ownerNavMenu')?.classList.add('hidden');
+ if($('ownerNavCurrent'))$('ownerNavCurrent').textContent='Delivery';
+ document.querySelectorAll('#ownerNavMenu button').forEach(b=>b.classList.toggle('active',b.dataset.area==='delivery'));
+ document.querySelectorAll('#ownerMenuItems .owner-tab').forEach(b=>b.classList.toggle('active',b.dataset.ownerDelivery==='1'));
+ load(()=>{try{window.FusionDelivery?.render(true)}catch(e){if(h)h.innerHTML='<div class="panel"><h2>Delivery</h2><p>'+String(e.message||e)+'</p></div>'}});
+ window.__closeOwnerMenu?.();
+}
+function install(){
+ page();buttons();
+ const a=window.showOwnerArea;if(a&&!a.__ffDelivery){const w=function(v){if(v==='delivery'){show();return}return a.apply(this,arguments)};w.__ffDelivery=1;window.showOwnerArea=w}
+ const t=window.showTab;if(t&&!t.__ffDelivery){const w=function(v){if(v==='delivery'){show();return}return t.apply(this,arguments)};w.__ffDelivery=1;window.showTab=w}
+ revealOwner();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+window.addEventListener('load',()=>{install();revealOwner()},{once:true});
+setTimeout(()=>{install();revealOwner();document.documentElement.classList.remove('ff-booting')},1200);
+setTimeout(revealOwner,3000);
+})();
+</script>
+
 </body></html>
