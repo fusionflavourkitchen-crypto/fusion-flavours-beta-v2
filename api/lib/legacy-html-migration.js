@@ -8,6 +8,7 @@ function stripRetiredOwnerControl(source) {
   return String(source || '')
     .replace(/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\);?/g, '')
     .replace(/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\);?/g, '')
+    .replace(/window\.toggleOwnerNav=\(\)=>\{\$\('ownerNavMenu'\)\?\.classList\.toggle\('hidden'\)\}\s*function ownerTabLabel\(t\)\{[\s\S]*?\}\s*/i, '')
     .replace(/window\.showTab=t=>\{[\s\S]*?\}\s*\nasync function loadOwnerData/i, 'async function loadOwnerData')
     .replace(/window\.showOwnerArea=area=>\{[\s\S]*?decorateOwnerPage\(t\);\s*\};/i, '')
     .replace(/const ffRetailOldShowTab=window\.showTab;\s*window\.showTab=function\(t\)\{ffRetailOldShowTab\(t\);if\(t==='fusionhome'\)renderFusionAtHome\(\);if\(t==='retailorders'\)renderRetailOrders\(\)\}\s*/i, '')
@@ -60,6 +61,8 @@ function migrationFailures(source) {
   if (/window\.showTab\s*=/i.test(html)) failures.push('legacy-showtab');
   if (/window\.showOwnerArea\s*=/i.test(html)) failures.push('legacy-owner-area');
   if (/window\.showOwnerPage\s*=/i.test(html)) failures.push('legacy-owner-page');
+  if (/window\.toggleOwnerNav\s*=\s*\(\)\s*=>/i.test(html)) failures.push('legacy-owner-menu-toggle');
+  if (/function\s+ownerTabLabel\s*\(/i.test(html)) failures.push('legacy-owner-tab-label');
   if (/Owner navigation reliability fix/i.test(html)) failures.push('legacy-owner-navigation-fix');
   if (/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\)/i.test(html)) failures.push('performance-timer');
   if (/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\)/i.test(html)) failures.push('period-timer');
