@@ -1,5 +1,5 @@
 /* Fusion Flavours application bootstrap
-   One top-level router owns Home, Delivery, Fusion at Home, Catering, Harnell, Legal and Owner.
+   One top-level router owns Home, Delivery, Fusion at Home, Catering, Community Meals, Legal and Owner.
    Owner section routing lives in owner-router.js; feature modules own their own screens.
 */
 (() => {
@@ -96,7 +96,7 @@
       if (typeof load === 'function') await load();
       if (typeof render === 'function') render();
     } catch (error) {
-      alert('Could not load Harnell menu: ' + (error?.message || error));
+      alert('Could not load Community Meals: ' + (error?.message || error));
     }
     scrollTop();
   }

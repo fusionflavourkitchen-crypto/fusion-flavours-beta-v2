@@ -7,13 +7,13 @@
 
   const AREA_CONFIG = {
     dashboard: { label: 'Dashboard', tabs: [['dash', 'Dashboard']] },
-    orders: { label: 'Orders', tabs: [['orders', 'Delivery Orders'], ['harnellorders', 'Harnell Orders'], ['retailorders', 'Postal Orders']] },
+    orders: { label: 'Orders', tabs: [['orders', 'Delivery Orders'], ['harnellorders', 'Community Orders'], ['retailorders', 'Postal Orders']] },
     kitchen: { label: 'Kitchen', tabs: [['menu', 'Menu'], ['stock', 'Stock'], ['costings', 'Costings'], ['cookbook', 'Cookbook'], ['prep', 'Prep']] },
     business: { label: 'Business', tabs: [['performance', 'P&L / Performance'], ['targets', 'Targets'], ['dailyadmin', 'Daily Admin'], ['costs', 'Costs & Overheads'], ['banking', 'Banking']] },
     catering: { label: 'Catering', tabs: [['catering', 'Catering']] },
-    harnell: { label: 'Harnell', tabs: [['harnell', 'Harnell']] },
+    harnell: { label: 'Community Meals', tabs: [['harnell', 'Community Meals']] },
     fusionhome: { label: 'Fusion at Home', tabs: [['fusionhome', 'Fusion at Home']] },
-    delivery: { label: 'Delivery', tabs: [['delivery', 'Delivery Management']] },
+
     service: { label: 'Service', tabs: [['service', 'Service']] }
   };
 
