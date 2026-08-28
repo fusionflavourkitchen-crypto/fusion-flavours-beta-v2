@@ -1,0 +1,169 @@
+name: Fix owner delivery
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-owner-delivery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch owner routing and Delivery tab
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          marker = 'FF_OWNER_DELIVERY_HOTFIX_20260828'
+          if marker in s:
+              print('Hotfix already present')
+              raise SystemExit(0)
+          hotfix = r'''
+<script>
+/* FF_OWNER_DELIVERY_HOTFIX_20260828
+   Fixes direct Owner first-paint blank screen and wires Delivery Management into Owner. */
+(function(){
+  'use strict';
+  const byId=id=>document.getElementById(id);
+  const requestedOwner=()=>{
+    const v=new URLSearchParams(location.search).get('view');
+    const path=location.pathname.replace(/\/+$/,'').toLowerCase();
+    return v==='owner' || path==='/owner' || path.endsWith('/owner.html');
+  };
+
+  function revealOwner(){
+    if(!requestedOwner()) return;
+    document.documentElement.classList.remove('ff-booting');
+    document.documentElement.removeAttribute('data-initial-view');
+    ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(id=>byId(id)?.classList.add('hidden'));
+    byId('owner')?.classList.remove('hidden');
+    try{ if(window.token && typeof window.openOwner==='function') window.openOwner(); }catch(_e){}
+  }
+
+  function ensureDeliveryPage(){
+    let page=byId('page-delivery');
+    if(!page){
+      const anchor=byId('page-service') || document.querySelector('.ownerPage:last-of-type');
+      if(anchor){
+        page=document.createElement('div');
+        page.id='page-delivery';
+        page.className='ownerPage hidden';
+        anchor.parentNode.insertBefore(page,anchor.nextSibling);
+      }
+    }
+    let newer=byId('ownerDelivery');
+    if(!newer){
+      const anchor=byId('ownerService') || document.querySelector('.owner-page:last-of-type');
+      if(anchor){
+        newer=document.createElement('div');
+        newer.id='ownerDelivery';
+        newer.className='owner-page hidden';
+        newer.style.display='none';
+        anchor.parentNode.insertBefore(newer,anchor.nextSibling);
+      }
+    }
+    return page || newer;
+  }
+
+  function addDeliveryButtons(){
+    const oldMenu=byId('ownerNavMenu');
+    if(oldMenu && !oldMenu.querySelector('[data-area="delivery"]')){
+      const b=document.createElement('button');
+      b.type='button'; b.dataset.area='delivery'; b.textContent='Delivery';
+      b.onclick=()=>window.showOwnerArea ? window.showOwnerArea('delivery') : window.showTab?.('delivery');
+      const service=oldMenu.querySelector('[data-area="service"]');
+      service ? service.insertAdjacentElement('afterend',b) : oldMenu.appendChild(b);
+    }
+    const newMenu=byId('ownerMenuItems');
+    if(newMenu && !newMenu.querySelector('[data-owner-delivery]')){
+      const b=document.createElement('button');
+      b.type='button'; b.className='owner-tab'; b.dataset.ownerDelivery='1'; b.textContent='Delivery';
+      b.setAttribute('onclick',"showTab('delivery')");
+      const service=[...newMenu.querySelectorAll('button')].find(x=>/service/i.test(x.textContent||''));
+      service ? service.insertAdjacentElement('afterend',b) : newMenu.appendChild(b);
+    }
+  }
+
+  function loadDeliveryModule(done){
+    if(window.FusionDelivery){ done?.(); return; }
+    let sc=byId('fusionDeliveryModule');
+    if(!sc){
+      sc=document.createElement('script');
+      sc.id='fusionDeliveryModule';
+      sc.src='/delivery-management.js?v=20260828';
+      sc.onload=()=>done?.();
+      sc.onerror=()=>{
+        const host=byId('page-delivery')||byId('ownerDelivery');
+        if(host) host.innerHTML='<div class="panel"><h2>Delivery</h2><p>Delivery Management failed to load. Refresh this page once.</p></div>';
+      };
+      document.body.appendChild(sc);
+    } else sc.addEventListener('load',()=>done?.(),{once:true});
+  }
+
+  function showDelivery(){
+    const page=ensureDeliveryPage();
+    document.querySelectorAll('.ownerPage').forEach(x=>x.classList.add('hidden'));
+    document.querySelectorAll('.owner-page').forEach(x=>{x.classList.add('hidden');x.style.display='none'});
+    const old=byId('page-delivery');
+    const newer=byId('ownerDelivery');
+    if(old) old.classList.remove('hidden');
+    if(newer){newer.classList.remove('hidden');newer.style.display='block'}
+    byId('ownerNavMenu')?.classList.add('hidden');
+    if(byId('ownerNavCurrent')) byId('ownerNavCurrent').textContent='Delivery';
+    document.querySelectorAll('#ownerNavMenu button').forEach(b=>b.classList.toggle('active',b.dataset.area==='delivery'));
+    document.querySelectorAll('#ownerMenuItems .owner-tab').forEach(b=>b.classList.toggle('active',b.dataset.ownerDelivery==='1'));
+    loadDeliveryModule(()=>{
+      try{ window.FusionDelivery?.render(true); }
+      catch(e){ if(page) page.innerHTML='<div class="panel"><h2>Delivery</h2><p>'+String(e.message||e)+'</p></div>'; }
+    });
+    window.__closeOwnerMenu?.();
+  }
+
+  function install(){
+    ensureDeliveryPage();
+    addDeliveryButtons();
+    const originalArea=window.showOwnerArea;
+    if(originalArea && !originalArea.__deliveryPatched){
+      const wrapped=function(area){ if(area==='delivery'){showDelivery();return;} return originalArea.apply(this,arguments); };
+      wrapped.__deliveryPatched=true; window.showOwnerArea=wrapped;
+    }
+    const originalTab=window.showTab;
+    if(originalTab && !originalTab.__deliveryPatched){
+      const wrapped=function(tab){ if(tab==='delivery'){showDelivery();return;} return originalTab.apply(this,arguments); };
+      wrapped.__deliveryPatched=true; window.showTab=wrapped;
+    }
+    revealOwner();
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',install,{once:true}); else install();
+  window.addEventListener('load',()=>{install();revealOwner();},{once:true});
+  setTimeout(()=>{install();revealOwner();document.documentElement.classList.remove('ff-booting');},1200);
+  setTimeout(()=>{if(requestedOwner()) revealOwner();},3000);
+})();
+</script>
+'''
+          if '</body>' not in s:
+              raise SystemExit('index.html has no </body> marker')
+          s = s.replace('</body>', hotfix + '\n</body>', 1)
+          p.write_text(s, encoding='utf-8')
+          print('Patched index.html')
+          PY
+      - name: Commit hotfix
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No changes to commit'
+            exit 0
+          fi
+          git config user.name 'Fusion Flavours Fix Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Fix Owner route and add Delivery management tab'
+          git push
