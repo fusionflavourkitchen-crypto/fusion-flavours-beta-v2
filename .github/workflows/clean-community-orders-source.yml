@@ -1,0 +1,57 @@
+name: Clean Community Orders source
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/clean-community-orders-source.yml'
+permissions:
+  contents: write
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update legacy Community Orders renderer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('/* ===== v4.2 HARNELL DELIVERY RUN ===== */','/* ===== v4.2 COMMUNITY MEALS DELIVERY RUN ===== */')
+          s=s.replace("function harnellRoomNumber(o){const n=Number(o?.room_number ?? o?.room_or_unit ?? 9999);return Number.isFinite(n)?n:9999}\n",'')
+          s=s.replace("const rows=[...(ownerData.harnellOrders||[])].sort((a,b)=>harnellRoomNumber(a)-harnellRoomNumber(b)||Number(a.id)-Number(b.id)),active=rows.filter(o=>!['completed','cancelled'].includes(o.status));",
+                      "const rows=[...(ownerData.harnellOrders||[])].sort((a,b)=>Number(a.delivery_slot_id||999999)-Number(b.delivery_slot_id||999999)||String(a.delivery_postcode||'').localeCompare(String(b.delivery_postcode||''))||Number(a.id)-Number(b.id)),active=rows.filter(o=>!['completed','cancelled'].includes(o.status));")
+          s=s.replace('<h2>Harnell Orders</h2><div class="notice"><b>Delivery run:</b> Automatically sorted by room number, lowest to highest.</div><button style="width:100%;margin:8px 0 12px" onclick="refreshHarnellOrders()">↻ Refresh Harnell Orders</button>',
+                      '<h2>Community Orders</h2><div class="notice"><b>Community Meals delivery run</b><br>Orders are grouped by their selected delivery slot and postcode.</div><button style="width:100%;margin:8px 0 12px" onclick="refreshHarnellOrders()">↻ Refresh Community Orders</button>')
+          old="<b>Room ${esc(o.room_number??o.room_or_unit??'—')} · ${esc(o.customer_name)}</b><div class=\"muted\">Floor ${esc(o.floor||'—')} · Order #${o.id} · ${cashDue?'💷 CASH DUE':esc(o.payment_status||'unpaid')}</div>"
+          new="<b>${esc(o.customer_name)} · Order #${o.id}</b><div class=\"muted\">${esc(o.delivery_address_line1||'Address not recorded')} · ${esc(o.delivery_postcode||'')} · ${cashDue?'💷 CASH DUE':esc(o.payment_status||'unpaid')}</div>"
+          s=s.replace(old,new)
+          s=s.replace("||'<p class=\"muted\">No open Harnell orders.</p>'","||'<p class=\"muted\">No open Community Orders.</p>'")
+          old2="<span>Room ${esc(o.room_number??o.room_or_unit??'—')} · ${esc(o.customer_name)} · #${o.id}</span>"
+          new2="<span>${esc(o.customer_name)} · ${esc(o.delivery_postcode||'')} · #${o.id}</span>"
+          s=s.replace(old2,new2)
+          s=s.replace("'/rest/v1/harnell_orders?select=*&order=room_number.asc,id.asc'","'/rest/v1/harnell_orders?select=*&order=id.asc'")
+          # Static customer legacy inputs/handlers are superseded by community-meals-labels.js, but remove resident wording so source cannot flash it before enhancement.
+          s=s.replace('placeholder="Room number (1–80)" aria-label="Room number"','placeholder="Delivery details" aria-label="Delivery details"')
+          s=s.replace("alert('Harnell ordering is currently closed.')","alert('Community Meals ordering is currently closed.')")
+          s=s.replace("alert('Harnell ordering is not currently accepting payment.')","alert('Community Meals ordering is not currently accepting payment.')")
+          s=s.replace("btn.textContent='Place Harnell order'","btn.textContent='Place Community Meals order'")
+          # Visible static headings/buttons only; internal harnell IDs/API names intentionally remain for compatibility.
+          s=s.replace('>Harnell Orders<','>Community Orders<').replace('Refresh Harnell Orders','Refresh Community Orders')
+          p.write_text(s)
+          PY
+      - name: Check source
+        run: |
+          grep -q 'Community Orders' index.html
+          grep -q 'delivery_address_line1' index.html
+          ! grep -q '>Harnell Orders<' index.html
+          node --check api/app.js
+      - name: Commit
+        run: |
+          git config user.name "Fusion Flavours Audit Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Align Community Orders with address delivery flow"
+          git pull --rebase origin main
+          git push
