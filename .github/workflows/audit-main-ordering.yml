@@ -17,7 +17,6 @@ jobs:
           from pathlib import Path
           import re
 
-          # Owner router: Community Meals is the source-of-truth label and Delivery is no longer a standalone area.
           p=Path('owner-router.js')
           s=p.read_text()
           s=s.replace("orders: { label: 'Orders', tabs: [['orders', 'Delivery Orders'], ['harnellorders', 'Harnell Orders'], ['retailorders', 'Postal Orders']] },",
@@ -27,7 +26,6 @@ jobs:
           s=s.replace("    delivery: { label: 'Delivery', tabs: [['delivery', 'Delivery Management']] },\n","")
           p.write_text(s)
 
-          # Runtime: keep internal legacy route IDs but remove user-facing Harnell wording.
           p=Path('fusion-runtime.js')
           s=p.read_text()
           s=s.replace('One top-level router owns Home, Delivery, Fusion at Home, Catering, Harnell, Legal and Owner.',
@@ -36,33 +34,39 @@ jobs:
                       "alert('Could not load Community Meals: ' + (error?.message || error));")
           p.write_text(s)
 
-          # Main index: remove remaining owner-side preorder controls and dashboard wording.
           p=Path('index.html')
           s=p.read_text()
 
-          new_dashboard = r'''function renderDashboard(){const o=paidToday(),rev=o.reduce((n,x)=>n+Number(x.total_pence||0),0)/100,out=o.filter(x=>!['delivered','cancelled'].includes(x.order_status)).length,port=o.reduce((n,x)=>n+(x.order_items||[]).reduce((m,y)=>m+Number(y.quantity||0),0),0);$('page-dash').innerHTML=`<div class="stats"><div class="stat">${o.length}<small>Paid orders today</small></div><div class="stat">${money(rev)}<small>Revenue today</small></div><div class="stat">${out}<small>Outstanding</small></div><div class="stat">${port}<small>Portions today</small></div></div><div class="panel"><h2>Main Delivery</h2><p>Normal ordering is active. Customers can order available menu items without a preorder cutoff or allocated preorder window.</p></div><div class="panel" id="revenuePanel"></div>`;renderRevenue()}'''
+          new_dashboard = r'''function renderDashboard(){const o=paidToday(),rev=o.reduce((n,x)=>n+Number(x.total_pence||0),0)/100,out=o.filter(x=>!['delivered','cancelled'].includes(x.order_status)).length,port=o.reduce((n,x)=>n+(x.order_items||[]).reduce((m,y)=>m+Number(y.quantity||0),0),0);$('page-dash').innerHTML=`<div class="stats"><div class="stat">${o.length}<small>Paid orders today</small></div><div class="stat">${money(rev)}<small>Revenue today</small></div><div class="stat">${out}<small>Outstanding</small></div><div class="stat">${port}<small>Portions today</small></div></div><div class="panel"><h2>Main Delivery</h2><p>Normal ordering is active. Customers can order available menu items without an allocated preorder window.</p></div><div class="panel" id="revenuePanel"></div>`;renderRevenue()}'''
           s,n=re.subn(r'function renderDashboard\(\)\{.*?\}\nfunction renderRevenue',new_dashboard+'\nfunction renderRevenue',s,count=1,flags=re.S)
           if n!=1: raise SystemExit('renderDashboard patch failed')
 
-          new_service = r'''function renderService(){const s=ownerData.settings;$('page-service').innerHTML=`<div class="panel"><h2>Main Delivery settings</h2><div class="notice"><b>Normal ordering</b><br>Main Delivery no longer uses preorder cutoffs, preorder opening days or allocated preorder delivery windows.</div><label>Main customer headline<textarea id="fHero">${esc(s.hero_text||'Fresh, honest food delivered to your door.')}</textarea></label><label>Customer announcement<textarea id="fNotice">${esc(s.notice||'')}</textarea></label><label>Delivery areas<textarea id="fAreas">${esc(s.delivery_areas||'')}</textarea></label><div class="split"><label>Delivery charge<input id="fFee" type="number" step=".5" value="${Number(s.delivery_fee_pence||0)/100}"></label><label>Minimum food order<input id="fMin" type="number" step=".5" value="${Number(s.minimum_order_pence||0)/100}"></label></div><button style="width:100%;margin-top:12px" onclick="saveService()">Save service settings</button></div>`}'''
+          new_service = r'''function renderService(){const s=ownerData.settings;$('page-service').innerHTML=`<div class="panel"><h2>Main Delivery settings</h2><div class="notice"><b>Normal ordering</b><br>Main Delivery accepts normal orders and no longer uses an order cutoff, opening-day schedule or allocated delivery window.</div><label>Main customer headline<textarea id="fHero">${esc(s.hero_text||'Fresh, honest food delivered to your door.')}</textarea></label><label>Customer announcement<textarea id="fNotice">${esc(s.notice||'')}</textarea></label><label>Delivery areas<textarea id="fAreas">${esc(s.delivery_areas||'')}</textarea></label><div class="split"><label>Delivery charge<input id="fFee" type="number" step=".5" value="${Number(s.delivery_fee_pence||0)/100}"></label><label>Minimum food order<input id="fMin" type="number" step=".5" value="${Number(s.minimum_order_pence||0)/100}"></label></div><button style="width:100%;margin-top:12px" onclick="saveService()">Save service settings</button></div>`}'''
           s,n=re.subn(r'function renderService\(\)\{.*?\}\nwindow\.saveService=async',new_service+'\nwindow.saveService=async',s,count=1,flags=re.S)
-          if n!=1: raise SystemExit('renderService patch failed')
+          if n!=1: raise SystemExit('base renderService patch failed')
 
           new_save = r'''window.saveService=async()=>{try{const body={hero_text:$('fHero').value.trim()||'Fresh, honest food delivered to your door.',notice:$('fNotice').value,delivery_areas:$('fAreas').value.trim()||'Local delivery area coming soon',delivery_fee_pence:Math.round(Number($('fFee').value||0)*100),minimum_order_pence:Math.round(Number($('fMin').value||0)*100)};await api('/rest/v1/settings?id=eq.1',{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(body)});ownerData.settings={...ownerData.settings,...body};state.settings=ownerData.settings;await loadCustomer();renderService();alert('Service settings saved')}catch(e){alert(e.message)}}'''
           s,n=re.subn(r'window\.saveService=async\(\)=>\{.*?\}\nfunction renderPrep',new_save+'\nfunction renderPrep',s,count=1,flags=re.S)
           if n!=1: raise SystemExit('saveService patch failed')
 
-          # Dead main-delivery preorder CSS is no longer needed.
+          # The later compact Service renderer is the active one. Keep its menu/slot tools but remove old main-order preorder controls.
+          s=s.replace("<details class=\"ownerDrop\"><summary><span>Service controls</span><span>${s.preorder_open?'Open':'Closed'} ▾</span></summary><div class=\"ownerDropBody\">",
+                      "<details class=\"ownerDrop\"><summary><span>Main Delivery controls</span><span>Settings ▾</span></summary><div class=\"ownerDropBody\"><div class=\"notice\"><b>Normal ordering</b><br>Main Delivery accepts normal orders. Community Meals keeps the separate preorder and delivery-slot system.</div>")
+          s=re.sub(r'\n\s*<label class=\\"switch\\"><input id=\\"fOpen\\"[^\n]*Preorders open</label>', '', s)
+          s=re.sub(r'\n\s*<label>Order cutoff<input id=\\"fCut\\"[^\n]*</label>', '', s)
+          s=re.sub(r'\n\s*<div class=\\"split\\"><label>Delivery from<input id=\\"fFrom\\"[^\n]*</div>', '', s)
+          s=re.sub(r'\n\s*<div class=\\"split\\"><label>Max orders<input id=\\"fMaxO\\"[^\n]*</div>', '', s)
+          s=re.sub(r'\n\s*<h3>Regular opening days</h3>\$\{days\.map\(.*?\.join\(\'\'\)\}', '', s)
+
+          # Remove obsolete customer preorder styling left behind after the UI was deleted.
           s=re.sub(r'\.preorderBox\{[^}]*\}\.preorderBox strong\{[^}]*\}', '', s)
           s=re.sub(r'\.preorderBox\{[^}]*\}', '', s)
 
-          # Hard checks for customer/owner-facing old wording in the active index.
-          forbidden=['PREORDER TODAY','Preorders Open','Preorders open','Order cutoff']
+          forbidden=['PREORDER TODAY','Preorders Open','Preorders open','Order cutoff','Order slots left']
           for term in forbidden:
               if term in s: raise SystemExit(f'forbidden legacy wording remains: {term}')
           p.write_text(s)
 
-          # New build forces current browser assets to refresh.
           p=Path('api/app.js')
           s=p.read_text()
           s=re.sub(r"const BUILD = '[^']+';","const BUILD = '20260828-refactor-34';",s,count=1)
@@ -78,10 +82,13 @@ jobs:
       - name: Verify key integration files
         run: |
           grep -q "label: 'Community Meals'" owner-router.js
+          grep -q "Community Orders" owner-router.js
           ! grep -q "delivery: { label: 'Delivery'" owner-router.js
           grep -q "function serviceOpen(){return true}" index.html
           ! grep -q "PREORDER TODAY" index.html
           ! grep -q "Preorders open" index.html
+          ! grep -q "Order cutoff" index.html
+          ! grep -q "Order slots left" index.html
           grep -q "20260828-refactor-34" api/app.js
       - name: Commit audit fixes
         run: |
@@ -90,4 +97,5 @@ jobs:
           git add owner-router.js fusion-runtime.js index.html api/app.js
           git diff --cached --quiet && exit 0
           git commit -m "Complete main ordering and Community Meals cleanup"
+          git pull --rebase origin main
           git push
