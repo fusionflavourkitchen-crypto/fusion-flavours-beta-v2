@@ -10,7 +10,8 @@ function stripRetiredOwnerControl(source) {
     .replace(/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\);?/g, '')
     .replace(/window\.showTab=t=>\{[\s\S]*?\}\s*\nasync function loadOwnerData/i, 'async function loadOwnerData')
     .replace(/window\.showOwnerArea=area=>\{[\s\S]*?decorateOwnerPage\(t\);\s*\};/i, '')
-    .replace(/const ffRetailOldShowTab=window\.showTab;\s*window\.showTab=function\(t\)\{ffRetailOldShowTab\(t\);if\(t==='fusionhome'\)renderFusionAtHome\(\);if\(t==='retailorders'\)renderRetailOrders\(\)\}\s*/i, '');
+    .replace(/const ffRetailOldShowTab=window\.showTab;\s*window\.showTab=function\(t\)\{ffRetailOldShowTab\(t\);if\(t==='fusionhome'\)renderFusionAtHome\(\);if\(t==='retailorders'\)renderRetailOrders\(\)\}\s*/i, '')
+    .replace(/<script>\s*\/\*\s*=====\s*Owner navigation reliability fix\s*=====\s*\*\/[\s\S]*?<\/script>/i, '');
 }
 
 function ensureCanonicalOwnerShell(source) {
@@ -59,6 +60,7 @@ function migrationFailures(source) {
   if (/window\.showTab\s*=/i.test(html)) failures.push('legacy-showtab');
   if (/window\.showOwnerArea\s*=/i.test(html)) failures.push('legacy-owner-area');
   if (/window\.showOwnerPage\s*=/i.test(html)) failures.push('legacy-owner-page');
+  if (/Owner navigation reliability fix/i.test(html)) failures.push('legacy-owner-navigation-fix');
   if (/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\)/i.test(html)) failures.push('performance-timer');
   if (/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\)/i.test(html)) failures.push('period-timer');
   if (!/async function loadOwnerData\s*\(/i.test(html)) failures.push('owner-loader');
