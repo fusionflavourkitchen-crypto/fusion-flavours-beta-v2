@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260828-refactor-34';
+const BUILD = '20260828-refactor-35';
 
 module.exports = async function handler(req, res) {
   try {
@@ -56,8 +56,10 @@ module.exports = async function handler(req, res) {
       mode,
       migrationOk: migrationIssues.length === 0,
       migrationIssues,
-      deliveryNav: /data-area=["']delivery["']/i.test(html),
-      deliveryPage: /id=["']page-delivery["']/i.test(html),
+      standaloneDeliveryNavAbsent: !/data-area=["']delivery["']/i.test(html),
+      standaloneDeliveryPageAbsent: !/id=["']page-delivery["']/i.test(html),
+      ordersDeliveryIntegrationScript: /<script\s+src=["']\/orders-delivery-integration\.js\?v=/i.test(html),
+      communityMealsIntegrationScript: /<script\s+src=["']\/community-meals-labels\.js\?v=/i.test(html),
       deliveryManagementScript: /<script\s+src=["']\/delivery-management\.js\?v=/i.test(html),
       ownerRouterScript: /<script\s+src=["']\/owner-router\.js\?v=/i.test(html),
       fusionRuntimeScript: /<script\s+src=["']\/fusion-runtime\.js\?v=/i.test(html),
@@ -71,7 +73,7 @@ module.exports = async function handler(req, res) {
       legacyV383PopstateAbsent: !/Browser back\/forward follows the customer hub routes properly/i.test(html),
       legacyPreV383RouterAbsent: !/Default route is now the Welcome Hub/i.test(html)
     };
-    ownerHealth.ok = mode === 'owner' && ownerHealth.migrationOk && ownerHealth.deliveryNav && ownerHealth.deliveryPage && ownerHealth.deliveryManagementScript && ownerHealth.ownerRouterScript && ownerHealth.fusionRuntimeScript && ownerHealth.bootModeOwner && ownerHealth.legacyShowTabAbsent && ownerHealth.legacyOwnerAreaAbsent && ownerHealth.legacyOwnerPageAbsent && ownerHealth.legacyReliabilityPatchAbsent && ownerHealth.legacyV383OwnerEntryAbsent && ownerHealth.legacyV383CustomerButtonAbsent && ownerHealth.legacyV383PopstateAbsent && ownerHealth.legacyPreV383RouterAbsent;
+    ownerHealth.ok = mode === 'owner' && ownerHealth.migrationOk && ownerHealth.standaloneDeliveryNavAbsent && ownerHealth.standaloneDeliveryPageAbsent && ownerHealth.ordersDeliveryIntegrationScript && ownerHealth.communityMealsIntegrationScript && ownerHealth.deliveryManagementScript && ownerHealth.ownerRouterScript && ownerHealth.fusionRuntimeScript && ownerHealth.bootModeOwner && ownerHealth.legacyShowTabAbsent && ownerHealth.legacyOwnerAreaAbsent && ownerHealth.legacyOwnerPageAbsent && ownerHealth.legacyReliabilityPatchAbsent && ownerHealth.legacyV383OwnerEntryAbsent && ownerHealth.legacyV383CustomerButtonAbsent && ownerHealth.legacyV383PopstateAbsent && ownerHealth.legacyPreV383RouterAbsent;
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
