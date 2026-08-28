@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260828-refactor-31';
+const BUILD = '20260828-refactor-32';
 
 module.exports = async function handler(req, res) {
   try {
@@ -31,6 +31,7 @@ module.exports = async function handler(req, res) {
       `<script src="/harnell-public.js?v=${BUILD}"></script>`,
       `<script src="/harnell-owner-integration.js?v=${BUILD}"></script>`,
       `<script src="/community-page-intro.js?v=${BUILD}"></script>`,
+      `<script src="/main-delivery-cleanup.js?v=${BUILD}"></script>`,
       `<script src="/catering-policy.js?v=${BUILD}"></script>`,
       `<script src="/delivery-management.js?v=${BUILD}"></script>`,
       `<script src="/business-finance-core.js?v=${BUILD}"></script>`,
