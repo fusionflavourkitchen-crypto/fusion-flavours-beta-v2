@@ -13,7 +13,10 @@ function stripRetiredOwnerControl(source) {
     .replace(/window\.showTab=t=>\{[\s\S]*?\}\s*\nasync function loadOwnerData/i, 'async function loadOwnerData')
     .replace(/window\.showOwnerArea=area=>\{[\s\S]*?decorateOwnerPage\(t\);\s*\};/i, '')
     .replace(/const ffRetailOldShowTab=window\.showTab;\s*window\.showTab=function\(t\)\{ffRetailOldShowTab\(t\);if\(t==='fusionhome'\)renderFusionAtHome\(\);if\(t==='retailorders'\)renderRetailOrders\(\)\}\s*/i, '')
-    .replace(/<script>\s*\/\*\s*=====\s*Owner navigation reliability fix\s*=====\s*\*\/[\s\S]*?<\/script>/i, '');
+    .replace(/<script>\s*\/\*\s*=====\s*Owner navigation reliability fix\s*=====\s*\*\/[\s\S]*?<\/script>/i, '')
+    .replace(/\/\* Owner must be its own exclusive top-level view\. \*\/\s*\$\('ownerEntry'\)\.onclick=\(\)=>\{[\s\S]*?if\(token\)openOwner\(\);\s*\};/i, '')
+    .replace(/\/\* Customer View from Owner always returns to the Welcome Hub, not Delivery\. \*\/\s*\$\('customerBtn'\)\.onclick=\(\)=>goCustomerHomeV383\(true\);?/i, '')
+    .replace(/\/\* Browser back\/forward follows the customer hub routes properly\. \*\/\s*window\.addEventListener\('popstate',\(\)=>\{[\s\S]*?\}\s*\);/i, '');
 }
 
 function ensureCanonicalOwnerShell(source) {
@@ -65,6 +68,9 @@ function migrationFailures(source) {
   if (/window\.toggleOwnerNav\s*=\s*\(\)\s*=>/i.test(html)) failures.push('legacy-owner-menu-toggle');
   if (/function\s+ownerTabLabel\s*\(/i.test(html)) failures.push('legacy-owner-tab-label');
   if (/\$\('ownerEntry'\)\.onclick=\(\)=>\{\$\('headerMenu'\)\.classList\.add\('hidden'\)/i.test(html)) failures.push('legacy-owner-entry-basic');
+  if (/Owner must be its own exclusive top-level view/i.test(html)) failures.push('legacy-v383-owner-entry');
+  if (/Customer View from Owner always returns to the Welcome Hub/i.test(html)) failures.push('legacy-v383-customer-button');
+  if (/Browser back\/forward follows the customer hub routes properly/i.test(html)) failures.push('legacy-v383-popstate');
   if (/Owner navigation reliability fix/i.test(html)) failures.push('legacy-owner-navigation-fix');
   if (/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\)/i.test(html)) failures.push('performance-timer');
   if (/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\)/i.test(html)) failures.push('period-timer');
