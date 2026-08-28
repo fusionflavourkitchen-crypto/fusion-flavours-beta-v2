@@ -11,12 +11,25 @@ function cleanMainDelivery(){
   const customer=document.getElementById('customer');
   if(!customer)return;
 
-  // Replace the old baked-in preorder chalkboard image with a live message that matches
-  // the new normal ordering model. This keeps the same prominent note position without
-  // any preorder/cut-off wording.
-  const note=customer.querySelector('.welcomeNoteWrap');
-  if(note && !note.querySelector('.mainDeliveryWelcomeNote')){
-    note.innerHTML=`<div class="mainDeliveryWelcomeNote" style="background:#171717;color:#fff;border:2px solid #f26b21;border-radius:18px;padding:22px 20px;margin:0 0 18px;text-align:center;box-shadow:0 5px 14px rgba(0,0,0,.12)"><div style="font-size:22px;font-weight:950;margin-bottom:10px">Fresh food, cooked with care.</div><div style="font-size:16px;line-height:1.55;color:#f5eee7">Order from the menu and we’ll cook your food fresh, then get it on its way to you as soon as it’s ready.</div><div style="margin-top:14px;color:#f26b21;font-weight:900">Thanks for supporting Fusion Flavours — Chef Dan</div></div>`;
+  // Restore the warm welcome note at the top of the Delivery page. Older builds placed it
+  // inside .welcomeNoteWrap, but that wrapper no longer exists in every rendered shell, so
+  // create the note directly before the main hero when needed.
+  let note=customer.querySelector('.mainDeliveryWelcomeNote');
+  if(!note){
+    const wrap=customer.querySelector('.welcomeNoteWrap');
+    const hero=customer.querySelector('.hero');
+    note=document.createElement('div');
+    note.className='mainDeliveryWelcomeNote';
+    note.style.cssText='background:#171717;color:#fff;border:2px solid #f26b21;border-radius:18px;padding:22px 20px;margin:0 0 18px;text-align:center;box-shadow:0 5px 14px rgba(0,0,0,.12)';
+    note.innerHTML='<div style="font-size:22px;font-weight:950;margin-bottom:10px">Fresh food, cooked with care.</div><div style="font-size:16px;line-height:1.55;color:#f5eee7">Order from the menu and we’ll cook your food fresh, then get it on its way to you as soon as it’s ready.</div><div style="margin-top:14px;color:#f26b21;font-weight:900">Thanks for supporting Fusion Flavours — Chef Dan</div>';
+    if(wrap){
+      wrap.innerHTML='';
+      wrap.appendChild(note);
+    }else if(hero && hero.parentNode){
+      hero.parentNode.insertBefore(note,hero);
+    }else{
+      customer.prepend(note);
+    }
   }
 
   const hero=customer.querySelector('.hero');
