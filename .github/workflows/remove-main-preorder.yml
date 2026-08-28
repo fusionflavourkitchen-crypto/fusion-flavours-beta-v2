@@ -1,0 +1,48 @@
+name: Remove main delivery preorder system
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/remove-main-preorder.yml'
+permissions:
+  contents: write
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove preorder UI and gating from main delivery page
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          s=p.read_text()
+
+          # Remove the large pre-order explainer image/note above the main delivery hero.
+          s=re.sub(r'<div class="welcomeNoteWrap">.*?</div>\s*<div class="hero">', '<div class="hero">', s, count=1, flags=re.S)
+
+          # Remove preorder eyebrow + status box from the hero markup itself.
+          s=s.replace('<div class="hero"><small>PREORDER TODAY</small><h1 id="heroHeadline">Fresh, honest food delivered to your door.</h1><div id="preorderBox" class="preorderBox"></div><div id="deliveryArea" class="deliveryArea"></div></div>',
+                      '<div class="hero"><h1 id="heroHeadline">Fresh, honest food delivered to your door.</h1><div id="deliveryArea" class="deliveryArea"></div></div>')
+
+          # Main delivery is normal live ordering: do not gate menu buttons on preorder settings/open days.
+          s=s.replace("function serviceOpen(){const s=state.settings;return!!s?.preorder_open&&(s.open_days||[]).includes(londonDayNumber())}",
+                      "function serviceOpen(){return true}")
+          s=s.replace("${out||!serviceOpen()?'disabled':''}", "${out?'disabled':''}")
+
+          # Stop renderCustomer trying to recreate preorder status content.
+          s=re.sub(r";\$\('preorderBox'\)\.innerHTML=`<strong>\$\{serviceOpen\(\)\?'🟢 Preorders Open':'🔴 Preorders Closed'\}</strong><div>Order by <b>\$\{String\(s\.cutoff_time\)\.slice\(0,5\)\}</b></div><div>Delivery <b>\$\{String\(s\.delivery_start\)\.slice\(0,5\)\} – \$\{String\(s\.delivery_end\)\.slice\(0,5\)\}</b></div>\$\{s\.notice\?`<div class=\"heroNotice\">\$\{esc\(s\.notice\)\}</div>`:''\}`",
+                   '', s, count=1)
+
+          p.write_text(s)
+          PY
+      - name: Commit main delivery preorder removal
+        run: |
+          git config user.name "Fusion Flavours Fix Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Remove preorder system from main delivery page"
+          git push
