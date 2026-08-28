@@ -645,7 +645,7 @@ body{transition:opacity .16s ease}
     <input id="harnellName" placeholder="Your name" autocomplete="name">
     <div class="split">
       <input id="harnellFloor" type="number" min="0" step="1" inputmode="numeric" placeholder="Floor" aria-label="Floor">
-      <input id="harnellRoom" type="number" min="1" max="80" step="1" inputmode="numeric" placeholder="Room number (1–80)" aria-label="Room number">
+      <input id="harnellRoom" type="number" min="1" max="80" step="1" inputmode="numeric" placeholder="Delivery details" aria-label="Delivery details">
     </div>
     <input id="harnellEmail" type="email" placeholder="Email for order confirmation" autocomplete="email">
     <input id="harnellPhone" type="tel" placeholder="Mobile number for delivery text" autocomplete="tel">
@@ -3338,14 +3338,14 @@ function renderHarnellBasket(){
 window.submitHarnellOrder=async()=>{
   const btn=$('harnellOrderBtn'),msg=$('harnellOrderMsg');
   try{
-    if(!harnellOpen())return alert('Harnell ordering is currently closed.');
+    if(!harnellOpen())return alert('Community Meals ordering is currently closed.');
     if(!harnellBasket.length)return alert('Choose at least one dish.');
     const name=$('harnellName').value.trim();if(!name)return alert('Enter your name.');
     btn.disabled=true;btn.textContent='Sending order…';msg.textContent='';
     const r=await api('/functions/v1/submit-harnell-order',{method:'POST',body:JSON.stringify({customer_name:name,room_or_unit:$('harnellRoom').value.trim(),phone:$('harnellPhone').value.trim(),notes:$('harnellNote').value.trim(),items:harnellBasket.map(x=>({item_id:x.item_id,quantity:x.quantity}))})});
     if(!r?.ok)throw new Error(r?.message||'Could not place order.');
     harnellBasket=[];renderHarnellBasket();msg.textContent=`✅ Order #${r.order_id} received · ${money(Number(r.total_pence||0)/100)}`;btn.textContent='Order received'
-  }catch(e){msg.textContent='❌ '+e.message;btn.disabled=false;btn.textContent='Place Harnell order'}
+  }catch(e){msg.textContent='❌ '+e.message;btn.disabled=false;btn.textContent='Place Community Meals order'}
 }
 
 /* Default route is now the Welcome Hub. */
@@ -3734,10 +3734,10 @@ renderHarnellBasket=function(){
 window.submitHarnellOrder=async()=>{
   const btn=$('harnellOrderBtn'),msg=$('harnellOrderMsg');
   try{
-    if(!harnellOpen())return alert('Harnell ordering is currently closed.');
+    if(!harnellOpen())return alert('Community Meals ordering is currently closed.');
     if(!harnellBasket.length)return alert('Choose at least one dish.');
     const name=$('harnellName').value.trim();if(!name)return alert('Enter your name.');
-    if(!harnellPaymentEnabled()&&!harnellPayLaterEnabled())return alert('Harnell ordering is not currently accepting payment.');
+    if(!harnellPaymentEnabled()&&!harnellPayLaterEnabled())return alert('Community Meals ordering is not currently accepting payment.');
     btn.disabled=true;btn.textContent=harnellPaymentEnabled()?'Opening secure payment…':'Sending order…';msg.textContent='';
     const payload={customer_name:name,room_or_unit:$('harnellRoom').value.trim(),phone:$('harnellPhone').value.trim(),notes:$('harnellNote').value.trim(),payment_method:harnellPaymentEnabled()?'card':'pay_later',items:harnellBasket.map(x=>({item_id:x.item_id,quantity:x.quantity}))};
     const endpoint=harnellPaymentEnabled()?'/functions/v1/create-harnell-checkout':'/functions/v1/submit-harnell-order';
@@ -3837,7 +3837,7 @@ harnellFinancialForRange=function(start,end){
 window.submitHarnellOrder=async()=>{
   const btn=$('harnellOrderBtn'),msg=$('harnellOrderMsg');
   try{
-    if(!harnellOpen())return alert('Harnell ordering is currently closed.');
+    if(!harnellOpen())return alert('Community Meals ordering is currently closed.');
     if(!harnellBasket.length)return alert('Choose at least one dish.');
     const name=$('harnellName').value.trim(),floor=$('harnellFloor').value.trim(),room=Number($('harnellRoom').value||0),email=$('harnellEmail').value.trim(),phone=$('harnellPhone').value.trim();
     if(!name)return alert('Enter your name.');
@@ -3846,7 +3846,7 @@ window.submitHarnellOrder=async()=>{
     if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return alert('Enter a valid email address for confirmation.');
     if(!phone)return alert('Enter your mobile number so we can text when your delivery is outside.');
     if(!$('harnellLegalAgree')?.checked)return alert('Please confirm that you have checked your order and agree to the Terms and Refunds Policy.');
-    if(!harnellPaymentEnabled()&&!harnellPayLaterEnabled())return alert('Harnell ordering is not currently accepting payment.');
+    if(!harnellPaymentEnabled()&&!harnellPayLaterEnabled())return alert('Community Meals ordering is not currently accepting payment.');
     btn.disabled=true;msg.textContent='';
     const paymentMethod=selectedHarnellPaymentMethod();
     if(!paymentMethod)throw new Error('Choose a payment method.');
@@ -3877,10 +3877,10 @@ window.submitHarnellOrder=async()=>{
       again.type='button';
       again.style.cssText='width:100%;margin-top:10px;background:#171717;color:#fff';
       again.textContent='Start another order';
-      again.onclick=()=>{msg.textContent='';btn.disabled=false;btn.textContent='Place Harnell order';again.remove();renderHarnellBasket();window.scrollTo({top:0,behavior:'smooth'})};
+      again.onclick=()=>{msg.textContent='';btn.disabled=false;btn.textContent='Place Community Meals order';again.remove();renderHarnellBasket();window.scrollTo({top:0,behavior:'smooth'})};
       btn.parentNode.insertBefore(again,msg);
     }
-  }catch(e){msg.textContent='❌ '+e.message;btn.disabled=false;btn.textContent='Place Harnell order';renderHarnellBasket()}
+  }catch(e){msg.textContent='❌ '+e.message;btn.disabled=false;btn.textContent='Place Community Meals order';renderHarnellBasket()}
 };
 
 /* Handle the shared Stripe checkout return for Harnell orders. */
@@ -4043,21 +4043,20 @@ loadCustomer().then(async()=>{
 </script>
 
 <script>
-/* ===== v4.2 HARNELL DELIVERY RUN ===== */
-function harnellRoomNumber(o){const n=Number(o?.room_number ?? o?.room_or_unit ?? 9999);return Number.isFinite(n)?n:9999}
+/* ===== v4.2 COMMUNITY MEALS DELIVERY RUN ===== */
 function harnellSmsHref(o){const phone=String(o?.phone||'').replace(/[^\d+]/g,'');const msg="Fusion Flavours: your Community Meals order is outside. Please come outside.";return phone?`sms:${phone}?body=${encodeURIComponent(msg)}`:'#'}
 window.renderHarnellOrders=function(){
   const p=$('page-harnellorders');if(!p)return;
-  const rows=[...(ownerData.harnellOrders||[])].sort((a,b)=>harnellRoomNumber(a)-harnellRoomNumber(b)||Number(a.id)-Number(b.id)),active=rows.filter(o=>!['completed','cancelled'].includes(o.status));
-  p.innerHTML=`<h2>Harnell Orders</h2><div class="notice"><b>Delivery run:</b> Automatically sorted by room number, lowest to highest.</div><button style="width:100%;margin:8px 0 12px" onclick="refreshHarnellOrders()">↻ Refresh Harnell Orders</button>${active.map(o=>{
+  const rows=[...(ownerData.harnellOrders||[])].sort((a,b)=>Number(a.delivery_slot_id||999999)-Number(b.delivery_slot_id||999999)||String(a.delivery_postcode||'').localeCompare(String(b.delivery_postcode||''))||Number(a.id)-Number(b.id)),active=rows.filter(o=>!['completed','cancelled'].includes(o.status));
+  p.innerHTML=`<h2>Community Orders</h2><div class="notice"><b>Community Meals delivery run</b><br>Orders are grouped by their selected delivery slot and postcode.</div><button style="width:100%;margin:8px 0 12px" onclick="refreshHarnellOrders()">↻ Refresh Community Orders</button>${active.map(o=>{
     const isCash=o.payment_method==='pay_later';
     const cashDue=isCash&&String(o.payment_status||'').toLowerCase()!=='paid';
     const statusOptions=(isCash?['new','accepted','preparing','ready']:['new','accepted','preparing','ready','completed','cancelled']).map(v=>`<option value="${v}" ${o.status===v?'selected':''}>${v}</option>`).join('');
-    return `<details class="menuDishDrop" open><summary><div><b>Room ${esc(o.room_number??o.room_or_unit??'—')} · ${esc(o.customer_name)}</b><div class="muted">Floor ${esc(o.floor||'—')} · Order #${o.id} · ${cashDue?'💷 CASH DUE':esc(o.payment_status||'unpaid')}</div></div><span>${money(Number(o.total_pence||0)/100)}${isCash?' · CASH':''} ▾</span></summary><div class="menuDishDropBody">${harnellOrderLines(o.id).map(x=>`<div class="row"><span>${Number(x.quantity||0)}× ${esc(x.item_name)}</span><b>${money(Number(x.unit_price_pence||0)*Number(x.quantity||0)/100)}</b></div>`).join('')}${cashDue?`<div class="notice" style="border:2px solid #f26b21;background:#fff3e8"><b style="font-size:17px">💷 CASH PAYMENT DUE: ${money(Number(o.total_pence||0)/100)}</b><br>Collect cash when delivering this order.</div>`:''}<div class="notice"><b>Email:</b> ${esc(o.customer_email||'—')}<br><b>Mobile:</b> ${esc(o.phone||'—')}</div><div class="split"><a style="display:block;text-align:center;text-decoration:none;padding:12px;border-radius:12px;background:#171717;color:white;font-weight:800" href="${esc(harnellSmsHref(o))}">📱 Text: I’m outside</a><select onchange="updateHarnellOrder(${o.id},this.value)">${statusOptions}</select></div>${cashDue?`<div style="display:grid;gap:8px;margin-top:10px"><button onclick="completeCashHarnellOrder(${o.id})" style="background:#171717">💷 Cash received · Complete</button><div class="split"><button class="danger" onclick="cancelCashHarnellOrder(${o.id})">✕ Cancel · No payment</button><button class="danger" onclick="cancelCashHarnellAsWaste(${o.id})">🗑 Cancel + log food as waste</button></div></div>`:''}${o.notes?`<div class="notice">${esc(o.notes)}</div>`:''}</div></details>`;
-  }).join('')||'<p class="muted">No open Harnell orders.</p>'}${rows.some(o=>['completed','cancelled'].includes(o.status))?`<details class="ownerDrop"><summary><span>Completed / cancelled</span><span>▾</span></summary><div class="ownerDropBody">${rows.filter(o=>['completed','cancelled'].includes(o.status)).map(o=>`<div class="row"><span>Room ${esc(o.room_number??o.room_or_unit??'—')} · ${esc(o.customer_name)} · #${o.id}</span><b>${o.status==='cancelled'?'CANCELLED':(String(o.payment_status||'').toLowerCase()==='paid'?'PAID · COMPLETED':'COMPLETED')}</b></div>`).join('')}</div></details>`:''}`;
+    return `<details class="menuDishDrop" open><summary><div><b>${esc(o.customer_name)} · Order #${o.id}</b><div class="muted">${esc(o.delivery_address_line1||'Address not recorded')} · ${esc(o.delivery_postcode||'')} · ${cashDue?'💷 CASH DUE':esc(o.payment_status||'unpaid')}</div></div><span>${money(Number(o.total_pence||0)/100)}${isCash?' · CASH':''} ▾</span></summary><div class="menuDishDropBody">${harnellOrderLines(o.id).map(x=>`<div class="row"><span>${Number(x.quantity||0)}× ${esc(x.item_name)}</span><b>${money(Number(x.unit_price_pence||0)*Number(x.quantity||0)/100)}</b></div>`).join('')}${cashDue?`<div class="notice" style="border:2px solid #f26b21;background:#fff3e8"><b style="font-size:17px">💷 CASH PAYMENT DUE: ${money(Number(o.total_pence||0)/100)}</b><br>Collect cash when delivering this order.</div>`:''}<div class="notice"><b>Email:</b> ${esc(o.customer_email||'—')}<br><b>Mobile:</b> ${esc(o.phone||'—')}</div><div class="split"><a style="display:block;text-align:center;text-decoration:none;padding:12px;border-radius:12px;background:#171717;color:white;font-weight:800" href="${esc(harnellSmsHref(o))}">📱 Text: I’m outside</a><select onchange="updateHarnellOrder(${o.id},this.value)">${statusOptions}</select></div>${cashDue?`<div style="display:grid;gap:8px;margin-top:10px"><button onclick="completeCashHarnellOrder(${o.id})" style="background:#171717">💷 Cash received · Complete</button><div class="split"><button class="danger" onclick="cancelCashHarnellOrder(${o.id})">✕ Cancel · No payment</button><button class="danger" onclick="cancelCashHarnellAsWaste(${o.id})">🗑 Cancel + log food as waste</button></div></div>`:''}${o.notes?`<div class="notice">${esc(o.notes)}</div>`:''}</div></details>`;
+  }).join('')||'<p class="muted">No open Community Orders.</p>'}${rows.some(o=>['completed','cancelled'].includes(o.status))?`<details class="ownerDrop"><summary><span>Completed / cancelled</span><span>▾</span></summary><div class="ownerDropBody">${rows.filter(o=>['completed','cancelled'].includes(o.status)).map(o=>`<div class="row"><span>${esc(o.customer_name)} · ${esc(o.delivery_postcode||'')} · #${o.id}</span><b>${o.status==='cancelled'?'CANCELLED':(String(o.payment_status||'').toLowerCase()==='paid'?'PAID · COMPLETED':'COMPLETED')}</b></div>`).join('')}</div></details>`:''}`;
   decorateOwnerPage('harnellorders')
 };
-window.refreshHarnellOrders=async()=>{try{ownerData.harnellOrders=(await api('/rest/v1/harnell_orders?select=*&order=room_number.asc,id.asc')).filter(o=>o.payment_method==='pay_later'||String(o.payment_status||'').toLowerCase()==='paid');ownerData.harnellOrderItems=await api('/rest/v1/harnell_order_items?select=*&order=harnell_order_id.asc,id.asc');renderHarnellOrders()}catch(e){alert(e.message)}};
+window.refreshHarnellOrders=async()=>{try{ownerData.harnellOrders=(await api('/rest/v1/harnell_orders?select=*&order=id.asc')).filter(o=>o.payment_method==='pay_later'||String(o.payment_status||'').toLowerCase()==='paid');ownerData.harnellOrderItems=await api('/rest/v1/harnell_order_items?select=*&order=harnell_order_id.asc,id.asc');renderHarnellOrders()}catch(e){alert(e.message)}};
 window.updateHarnellOrder=async(id,status)=>{try{
   await api('/rest/v1/harnell_orders?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status,updated_at:new Date().toISOString()})});
   await loadHarnellOwnerData();
