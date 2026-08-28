@@ -25,6 +25,17 @@ const baseAdmin=window.renderHarnellAdmin;if(typeof baseAdmin==='function')windo
 window.addCommunitySlot=async()=>{try{await api('/rest/v1/community_delivery_slots',{method:'POST',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:$('cms_new_name').value.trim()||`${$('cms_new_start').value}–${$('cms_new_end').value}`,start_time:$('cms_new_start').value,end_time:$('cms_new_end').value,booking_cutoff:$('cms_new_cutoff').value,max_orders:Number($('cms_new_orders').value||0),max_portions:Number($('cms_new_portions').value||0),active:true,sort_order:(ownerCommunitySlots.length+1)*10})});await loadOwnerCommunitySlots();$('communitySlotsAdmin')?.remove();await enhanceCommunityOwner()}catch(e){alert(e.message)}};
 window.saveCommunitySlot=async id=>{try{await api('/rest/v1/community_delivery_slots?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({name:$('cms_name_'+id).value.trim(),start_time:$('cms_start_'+id).value,end_time:$('cms_end_'+id).value,booking_cutoff:$('cms_cutoff_'+id).value,max_orders:Number($('cms_orders_'+id).value||0),max_portions:Number($('cms_portions_'+id).value||0),active:$('cms_active_'+id).checked,updated_at:new Date().toISOString()})});await loadOwnerCommunitySlots();alert('Community delivery slot saved')}catch(e){alert(e.message)}};
 window.archiveCommunitySlot=async id=>{if(!confirm('Archive this Community Meals delivery slot?'))return;try{await api('/rest/v1/community_delivery_slots?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({active:false,updated_at:new Date().toISOString()})});await loadOwnerCommunitySlots();$('communitySlotsAdmin')?.remove();await enhanceCommunityOwner()}catch(e){alert(e.message)}};
-function run(){renameText(document.body);if($('harnellView')&&!$('harnellView').classList.contains('hidden'))enhanceCommunityCustomer();if($('page-harnell')&&!$('page-harnell').classList.contains('hidden'))enhanceCommunityOwner()}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();const observer=new MutationObserver(()=>renameText(document.body));if(document.body)observer.observe(document.body,{subtree:true,childList:true,characterData:true});setInterval(run,1800);
+function ensureMainCustomerNote(){
+  if($('ffCustomerIntroNote'))return;
+  const home=[...document.querySelectorAll('a,button,h1,h2,h3,div,span')].find(el=>(el.textContent||'').trim()==='← Fusion Flavours Home'||(el.textContent||'').trim()==='Fusion Flavours Home');
+  if(!home)return;
+  const anchor=home.closest('.customerNavRow')||home;
+  const note=document.createElement('div');
+  note.id='ffCustomerIntroNote';
+  note.style.cssText='margin:12px 0 14px;padding:14px 15px;background:#fffaf3;border:1px solid #e2d5c6;border-left:5px solid #f26b21;border-radius:14px;line-height:1.42;box-shadow:0 4px 12px rgba(0,0,0,.05)';
+  note.innerHTML='<b>Fresh food, cooked with care.</b><br>Order from the menu and we’ll cook your food fresh, then get it on its way to you as soon as it’s ready.<br><span style="display:block;margin-top:6px;font-weight:800">Thanks for supporting Fusion Flavours — Chef Dan</span>';
+  anchor.insertAdjacentElement('afterend',note);
+}
+function run(){renameText(document.body);ensureMainCustomerNote();if($('harnellView')&&!$('harnellView').classList.contains('hidden'))enhanceCommunityCustomer();if($('page-harnell')&&!$('page-harnell').classList.contains('hidden'))enhanceCommunityOwner()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();const observer=new MutationObserver(()=>{renameText(document.body);ensureMainCustomerNote()});if(document.body)observer.observe(document.body,{subtree:true,childList:true,characterData:true});setInterval(run,1800);
 })();
