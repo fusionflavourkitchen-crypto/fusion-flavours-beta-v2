@@ -4046,7 +4046,7 @@ loadCustomer().then(async()=>{
 <script>
 /* ===== v4.2 HARNELL DELIVERY RUN ===== */
 function harnellRoomNumber(o){const n=Number(o?.room_number ?? o?.room_or_unit ?? 9999);return Number.isFinite(n)?n:9999}
-function harnellSmsHref(o){const phone=String(o?.phone||'').replace(/[^\d+]/g,'');const msg="Fusion Flavours: your Community Meals order is outside. Please come to the agreed delivery point / entrance.";return phone?`sms:${phone}?body=${encodeURIComponent(msg)}`:'#'}
+function harnellSmsHref(o){const phone=String(o?.phone||'').replace(/[^\d+]/g,'');const msg="Fusion Flavours: your Community Meals order is outside. Please come outside.";return phone?`sms:${phone}?body=${encodeURIComponent(msg)}`:'#'}
 window.renderHarnellOrders=function(){
   const p=$('page-harnellorders');if(!p)return;
   const rows=[...(ownerData.harnellOrders||[])].sort((a,b)=>harnellRoomNumber(a)-harnellRoomNumber(b)||Number(a.id)-Number(b.id)),active=rows.filter(o=>!['completed','cancelled'].includes(o.status));
