@@ -17,7 +17,8 @@ function stripRetiredOwnerControl(source) {
     .replace(/\/\* Owner must be its own exclusive top-level view\. \*\/\s*\$\('ownerEntry'\)\.onclick=\(\)=>\{[\s\S]*?if\(token\)openOwner\(\);\s*\};/i, '')
     .replace(/\/\* Customer View from Owner always returns to the Welcome Hub, not Delivery\. \*\/\s*\$\('customerBtn'\)\.onclick=\(\)=>goCustomerHomeV383\(true\);?/i, '')
     .replace(/\/\* Browser back\/forward follows the customer hub routes properly\. \*\/\s*window\.addEventListener\('popstate',\(\)=>\{[\s\S]*?\}\s*\);/i, '')
-    .replace(/function\s+goCustomerHomeV383\(push=true\)\{\s*hideTopLevelViewsV383\(\);\s*if\(push\)\{\s*const u=new URL\(location\.href\);\s*u\.search='';\s*u\.searchParams\.set\('view','home'\);\s*history\.pushState\(\{view:'home'\},'',u\);\s*\}\s*\$\('welcomeHub'\)\?\.classList\.remove\('hidden'\);\s*renderWelcomeHub\(\);\s*\}/i, '');
+    .replace(/function\s+goCustomerHomeV383\(push=true\)\{\s*hideTopLevelViewsV383\(\);\s*if\(push\)\{\s*const u=new URL\(location\.href\);\s*u\.search='';\s*u\.searchParams\.set\('view','home'\);\s*history\.pushState\(\{view:'home'\},'',u\);\s*\}\s*\$\('welcomeHub'\)\?\.classList\.remove\('hidden'\);\s*renderWelcomeHub\(\);\s*\}/i, '')
+    .replace(/\/\* Default route is now the Welcome Hub\. \*\/[\s\S]*?(\/\* ===== v3\.8\.3 ROUTING FIX ===== \*\/)/i, '$1');
 }
 
 function ensureCanonicalOwnerShell(source) {
@@ -73,6 +74,7 @@ function migrationFailures(source) {
   if (/Customer View from Owner always returns to the Welcome Hub/i.test(html)) failures.push('legacy-v383-customer-button');
   if (/Browser back\/forward follows the customer hub routes properly/i.test(html)) failures.push('legacy-v383-popstate');
   if (/function\s+goCustomerHomeV383\s*\(/i.test(html)) failures.push('legacy-v383-home-helper');
+  if (/Default route is now the Welcome Hub/i.test(html)) failures.push('legacy-pre-v383-router');
   if (/Owner navigation reliability fix/i.test(html)) failures.push('legacy-owner-navigation-fix');
   if (/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\)/i.test(html)) failures.push('performance-timer');
   if (/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\)/i.test(html)) failures.push('period-timer');
