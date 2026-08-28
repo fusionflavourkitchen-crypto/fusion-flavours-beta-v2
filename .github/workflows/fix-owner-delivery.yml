@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - '.github/workflows/fix-owner-delivery.yml'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,154 +13,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch owner routing and Delivery tab
-        shell: bash
+      - name: Patch index
+        env:
+          HOTFIX_B64: CjxzY3JpcHQ+Ci8qIEZGX09XTkVSX0RFTElWRVJZX0hPVEZJWF8yMDI2MDgyOCAqLwooZnVuY3Rpb24oKXsKJ3VzZSBzdHJpY3QnOwpjb25zdCAkPWlkPT5kb2N1bWVudC5nZXRFbGVtZW50QnlJZChpZCk7CmNvbnN0IG93bmVyUmVxdWVzdGVkPSgpPT57CiBjb25zdCB2PW5ldyBVUkxTZWFyY2hQYXJhbXMobG9jYXRpb24uc2VhcmNoKS5nZXQoJ3ZpZXcnKTsKIGNvbnN0IHA9bG9jYXRpb24ucGF0aG5hbWUucmVwbGFjZSgvXC8rJC8sJycpLnRvTG93ZXJDYXNlKCk7CiByZXR1cm4gdj09PSdvd25lcid8fHA9PT0nL293bmVyJ3x8cC5lbmRzV2l0aCgnL293bmVyLmh0bWwnKTsKfTsKZnVuY3Rpb24gcmV2ZWFsT3duZXIoKXsKIGlmKCFvd25lclJlcXVlc3RlZCgpKXJldHVybjsKIGRvY3VtZW50LmRvY3VtZW50RWxlbWVudC5jbGFzc0xpc3QucmVtb3ZlKCdmZi1ib290aW5nJyk7CiBkb2N1bWVudC5kb2N1bWVudEVsZW1lbnQucmVtb3ZlQXR0cmlidXRlKCdkYXRhLWluaXRpYWwtdmlldycpOwogWyd3ZWxjb21lSHViJywnY3VzdG9tZXInLCdyZXRhaWxDdXN0b21lcicsJ2NhdGVyaW5nQ3VzdG9tZXInLCdoYXJuZWxsQ3VzdG9tZXInLCdsZWdhbEN1c3RvbWVyJ10uZm9yRWFjaChpZD0+JChpZCk/LmNsYXNzTGlzdC5hZGQoJ2hpZGRlbicpKTsKICQoJ293bmVyJyk/LmNsYXNzTGlzdC5yZW1vdmUoJ2hpZGRlbicpOwogdHJ5e2lmKHdpbmRvdy50b2tlbiYmdHlwZW9mIHdpbmRvdy5vcGVuT3duZXI9PT0nZnVuY3Rpb24nKXdpbmRvdy5vcGVuT3duZXIoKX1jYXRjaChlKXt9Cn0KZnVuY3Rpb24gcGFnZSgpewogbGV0IHA9JCgncGFnZS1kZWxpdmVyeScpOwogaWYoIXApewogICBjb25zdCBhPSQoJ3BhZ2Utc2VydmljZScpfHxkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcub3duZXJQYWdlOmxhc3Qtb2YtdHlwZScpOwogICBpZihhKXtwPWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2RpdicpO3AuaWQ9J3BhZ2UtZGVsaXZlcnknO3AuY2xhc3NOYW1lPSdvd25lclBhZ2UgaGlkZGVuJzthLmFmdGVyKHApfQogfQogbGV0IG49JCgnb3duZXJEZWxpdmVyeScpOwogaWYoIW4pewogICBjb25zdCBhPSQoJ293bmVyU2VydmljZScpfHxkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcub3duZXItcGFnZTpsYXN0LW9mLXR5cGUnKTsKICAgaWYoYSl7bj1kb2N1bWVudC5jcmVhdGVFbGVtZW50KCdkaXYnKTtuLmlkPSdvd25lckRlbGl2ZXJ5JztuLmNsYXNzTmFtZT0nb3duZXItcGFnZSBoaWRkZW4nO24uc3R5bGUuZGlzcGxheT0nbm9uZSc7YS5hZnRlcihuKX0KIH0KIHJldHVybiBwfHxuOwp9CmZ1bmN0aW9uIGJ1dHRvbnMoKXsKIGNvbnN0IG09JCgnb3duZXJOYXZNZW51Jyk7CiBpZihtJiYhbS5xdWVyeVNlbGVjdG9yKCdbZGF0YS1hcmVhPSJkZWxpdmVyeSJdJykpewogICBjb25zdCBiPWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2J1dHRvbicpO2IudHlwZT0nYnV0dG9uJztiLmRhdGFzZXQuYXJlYT0nZGVsaXZlcnknO2IudGV4dENvbnRlbnQ9J0RlbGl2ZXJ5JzsKICAgYi5vbmNsaWNrPSgpPT53aW5kb3cuc2hvd093bmVyQXJlYT93aW5kb3cuc2hvd093bmVyQXJlYSgnZGVsaXZlcnknKTp3aW5kb3cuc2hvd1RhYj8uKCdkZWxpdmVyeScpOwogICBjb25zdCBzPW0ucXVlcnlTZWxlY3RvcignW2RhdGEtYXJlYT0ic2VydmljZSJdJyk7cz9zLmFmdGVyKGIpOm0uYXBwZW5kKGIpOwogfQogY29uc3Qgbj0kKCdvd25lck1lbnVJdGVtcycpOwogaWYobiYmIW4ucXVlcnlTZWxlY3RvcignW2RhdGEtb3duZXItZGVsaXZlcnldJykpewogICBjb25zdCBiPWRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoJ2J1dHRvbicpO2IudHlwZT0nYnV0dG9uJztiLmNsYXNzTmFtZT0nb3duZXItdGFiJztiLmRhdGFzZXQub3duZXJEZWxpdmVyeT0nMSc7Yi50ZXh0Q29udGVudD0nRGVsaXZlcnknOwogICBiLm9uY2xpY2s9KCk9PndpbmRvdy5zaG93VGFiPy4oJ2RlbGl2ZXJ5Jyk7CiAgIGNvbnN0IHM9Wy4uLm4ucXVlcnlTZWxlY3RvckFsbCgnYnV0dG9uJyldLmZpbmQoeD0+L3NlcnZpY2UvaS50ZXN0KHgudGV4dENvbnRlbnR8fCcnKSk7cz9zLmFmdGVyKGIpOm4uYXBwZW5kKGIpOwogfQp9CmZ1bmN0aW9uIGxvYWQoZG9uZSl7CiBpZih3aW5kb3cuRnVzaW9uRGVsaXZlcnkpe2RvbmUoKTtyZXR1cm59CiBsZXQgcz0kKCdmdXNpb25EZWxpdmVyeU1vZHVsZScpOwogaWYoIXMpe3M9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnc2NyaXB0Jyk7cy5pZD0nZnVzaW9uRGVsaXZlcnlNb2R1bGUnO3Muc3JjPScvZGVsaXZlcnktbWFuYWdlbWVudC5qcz92PTIwMjYwODI4Yic7cy5vbmxvYWQ9ZG9uZTtzLm9uZXJyb3I9KCk9Pntjb25zdCBoPXBhZ2UoKTtpZihoKWguaW5uZXJIVE1MPSc8ZGl2IGNsYXNzPSJwYW5lbCI+PGgyPkRlbGl2ZXJ5PC9oMj48cD5EZWxpdmVyeSBNYW5hZ2VtZW50IGZhaWxlZCB0byBsb2FkLiBSZWZyZXNoIG9uY2UuPC9wPjwvZGl2Pid9O2RvY3VtZW50LmJvZHkuYXBwZW5kKHMpfQogZWxzZSBzLmFkZEV2ZW50TGlzdGVuZXIoJ2xvYWQnLGRvbmUse29uY2U6dHJ1ZX0pOwp9CmZ1bmN0aW9uIHNob3coKXsKIGNvbnN0IGg9cGFnZSgpO2J1dHRvbnMoKTsKIGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJy5vd25lclBhZ2UnKS5mb3JFYWNoKHg9PnguY2xhc3NMaXN0LmFkZCgnaGlkZGVuJykpOwogZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnLm93bmVyLXBhZ2UnKS5mb3JFYWNoKHg9Pnt4LmNsYXNzTGlzdC5hZGQoJ2hpZGRlbicpO3guc3R5bGUuZGlzcGxheT0nbm9uZSd9KTsKIGNvbnN0IGE9JCgncGFnZS1kZWxpdmVyeScpO2lmKGEpYS5jbGFzc0xpc3QucmVtb3ZlKCdoaWRkZW4nKTsKIGNvbnN0IG49JCgnb3duZXJEZWxpdmVyeScpO2lmKG4pe24uY2xhc3NMaXN0LnJlbW92ZSgnaGlkZGVuJyk7bi5zdHlsZS5kaXNwbGF5PSdibG9jayd9CiAkKCdvd25lck5hdk1lbnUnKT8uY2xhc3NMaXN0LmFkZCgnaGlkZGVuJyk7CiBpZigkKCdvd25lck5hdkN1cnJlbnQnKSkkKCdvd25lck5hdkN1cnJlbnQnKS50ZXh0Q29udGVudD0nRGVsaXZlcnknOwogZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnI293bmVyTmF2TWVudSBidXR0b24nKS5mb3JFYWNoKGI9PmIuY2xhc3NMaXN0LnRvZ2dsZSgnYWN0aXZlJyxiLmRhdGFzZXQuYXJlYT09PSdkZWxpdmVyeScpKTsKIGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJyNvd25lck1lbnVJdGVtcyAub3duZXItdGFiJykuZm9yRWFjaChiPT5iLmNsYXNzTGlzdC50b2dnbGUoJ2FjdGl2ZScsYi5kYXRhc2V0Lm93bmVyRGVsaXZlcnk9PT0nMScpKTsKIGxvYWQoKCk9Pnt0cnl7d2luZG93LkZ1c2lvbkRlbGl2ZXJ5Py5yZW5kZXIodHJ1ZSl9Y2F0Y2goZSl7aWYoaCloLmlubmVySFRNTD0nPGRpdiBjbGFzcz0icGFuZWwiPjxoMj5EZWxpdmVyeTwvaDI+PHA+JytTdHJpbmcoZS5tZXNzYWdlfHxlKSsnPC9wPjwvZGl2Pid9fSk7CiB3aW5kb3cuX19jbG9zZU93bmVyTWVudT8uKCk7Cn0KZnVuY3Rpb24gaW5zdGFsbCgpewogcGFnZSgpO2J1dHRvbnMoKTsKIGNvbnN0IGE9d2luZG93LnNob3dPd25lckFyZWE7aWYoYSYmIWEuX19mZkRlbGl2ZXJ5KXtjb25zdCB3PWZ1bmN0aW9uKHYpe2lmKHY9PT0nZGVsaXZlcnknKXtzaG93KCk7cmV0dXJufXJldHVybiBhLmFwcGx5KHRoaXMsYXJndW1lbnRzKX07dy5fX2ZmRGVsaXZlcnk9MTt3aW5kb3cuc2hvd093bmVyQXJlYT13fQogY29uc3QgdD13aW5kb3cuc2hvd1RhYjtpZih0JiYhdC5fX2ZmRGVsaXZlcnkpe2NvbnN0IHc9ZnVuY3Rpb24odil7aWYodj09PSdkZWxpdmVyeScpe3Nob3coKTtyZXR1cm59cmV0dXJuIHQuYXBwbHkodGhpcyxhcmd1bWVudHMpfTt3Ll9fZmZEZWxpdmVyeT0xO3dpbmRvdy5zaG93VGFiPXd9CiByZXZlYWxPd25lcigpOwp9CmlmKGRvY3VtZW50LnJlYWR5U3RhdGU9PT0nbG9hZGluZycpZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsaW5zdGFsbCx7b25jZTp0cnVlfSk7ZWxzZSBpbnN0YWxsKCk7CndpbmRvdy5hZGRFdmVudExpc3RlbmVyKCdsb2FkJywoKT0+e2luc3RhbGwoKTtyZXZlYWxPd25lcigpfSx7b25jZTp0cnVlfSk7CnNldFRpbWVvdXQoKCk9PntpbnN0YWxsKCk7cmV2ZWFsT3duZXIoKTtkb2N1bWVudC5kb2N1bWVudEVsZW1lbnQuY2xhc3NMaXN0LnJlbW92ZSgnZmYtYm9vdGluZycpfSwxMjAwKTsKc2V0VGltZW91dChyZXZlYWxPd25lciwzMDAwKTsKfSkoKTsKPC9zY3JpcHQ+Cg==
         run: |
           python3 - <<'PY'
+          import os, base64
           from pathlib import Path
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-          marker = 'FF_OWNER_DELIVERY_HOTFIX_20260828'
-          if marker in s:
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='FF_OWNER_DELIVERY_HOTFIX_20260828'
+          if marker not in s:
+              hotfix=base64.b64decode(os.environ['HOTFIX_B64']).decode('utf-8')
+              if '</body>' not in s:
+                  raise SystemExit('index.html has no closing body tag')
+              s=s.replace('</body>',hotfix+'\n</body>',1)
+              p.write_text(s,encoding='utf-8')
+              print('Patched index.html')
+          else:
               print('Hotfix already present')
-              raise SystemExit(0)
-          hotfix = r'''
-<script>
-/* FF_OWNER_DELIVERY_HOTFIX_20260828
-   Fixes direct Owner first-paint blank screen and wires Delivery Management into Owner. */
-(function(){
-  'use strict';
-  const byId=id=>document.getElementById(id);
-  const requestedOwner=()=>{
-    const v=new URLSearchParams(location.search).get('view');
-    const path=location.pathname.replace(/\/+$/,'').toLowerCase();
-    return v==='owner' || path==='/owner' || path.endsWith('/owner.html');
-  };
-
-  function revealOwner(){
-    if(!requestedOwner()) return;
-    document.documentElement.classList.remove('ff-booting');
-    document.documentElement.removeAttribute('data-initial-view');
-    ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(id=>byId(id)?.classList.add('hidden'));
-    byId('owner')?.classList.remove('hidden');
-    try{ if(window.token && typeof window.openOwner==='function') window.openOwner(); }catch(_e){}
-  }
-
-  function ensureDeliveryPage(){
-    let page=byId('page-delivery');
-    if(!page){
-      const anchor=byId('page-service') || document.querySelector('.ownerPage:last-of-type');
-      if(anchor){
-        page=document.createElement('div');
-        page.id='page-delivery';
-        page.className='ownerPage hidden';
-        anchor.parentNode.insertBefore(page,anchor.nextSibling);
-      }
-    }
-    let newer=byId('ownerDelivery');
-    if(!newer){
-      const anchor=byId('ownerService') || document.querySelector('.owner-page:last-of-type');
-      if(anchor){
-        newer=document.createElement('div');
-        newer.id='ownerDelivery';
-        newer.className='owner-page hidden';
-        newer.style.display='none';
-        anchor.parentNode.insertBefore(newer,anchor.nextSibling);
-      }
-    }
-    return page || newer;
-  }
-
-  function addDeliveryButtons(){
-    const oldMenu=byId('ownerNavMenu');
-    if(oldMenu && !oldMenu.querySelector('[data-area="delivery"]')){
-      const b=document.createElement('button');
-      b.type='button'; b.dataset.area='delivery'; b.textContent='Delivery';
-      b.onclick=()=>window.showOwnerArea ? window.showOwnerArea('delivery') : window.showTab?.('delivery');
-      const service=oldMenu.querySelector('[data-area="service"]');
-      service ? service.insertAdjacentElement('afterend',b) : oldMenu.appendChild(b);
-    }
-    const newMenu=byId('ownerMenuItems');
-    if(newMenu && !newMenu.querySelector('[data-owner-delivery]')){
-      const b=document.createElement('button');
-      b.type='button'; b.className='owner-tab'; b.dataset.ownerDelivery='1'; b.textContent='Delivery';
-      b.setAttribute('onclick',"showTab('delivery')");
-      const service=[...newMenu.querySelectorAll('button')].find(x=>/service/i.test(x.textContent||''));
-      service ? service.insertAdjacentElement('afterend',b) : newMenu.appendChild(b);
-    }
-  }
-
-  function loadDeliveryModule(done){
-    if(window.FusionDelivery){ done?.(); return; }
-    let sc=byId('fusionDeliveryModule');
-    if(!sc){
-      sc=document.createElement('script');
-      sc.id='fusionDeliveryModule';
-      sc.src='/delivery-management.js?v=20260828';
-      sc.onload=()=>done?.();
-      sc.onerror=()=>{
-        const host=byId('page-delivery')||byId('ownerDelivery');
-        if(host) host.innerHTML='<div class="panel"><h2>Delivery</h2><p>Delivery Management failed to load. Refresh this page once.</p></div>';
-      };
-      document.body.appendChild(sc);
-    } else sc.addEventListener('load',()=>done?.(),{once:true});
-  }
-
-  function showDelivery(){
-    const page=ensureDeliveryPage();
-    document.querySelectorAll('.ownerPage').forEach(x=>x.classList.add('hidden'));
-    document.querySelectorAll('.owner-page').forEach(x=>{x.classList.add('hidden');x.style.display='none'});
-    const old=byId('page-delivery');
-    const newer=byId('ownerDelivery');
-    if(old) old.classList.remove('hidden');
-    if(newer){newer.classList.remove('hidden');newer.style.display='block'}
-    byId('ownerNavMenu')?.classList.add('hidden');
-    if(byId('ownerNavCurrent')) byId('ownerNavCurrent').textContent='Delivery';
-    document.querySelectorAll('#ownerNavMenu button').forEach(b=>b.classList.toggle('active',b.dataset.area==='delivery'));
-    document.querySelectorAll('#ownerMenuItems .owner-tab').forEach(b=>b.classList.toggle('active',b.dataset.ownerDelivery==='1'));
-    loadDeliveryModule(()=>{
-      try{ window.FusionDelivery?.render(true); }
-      catch(e){ if(page) page.innerHTML='<div class="panel"><h2>Delivery</h2><p>'+String(e.message||e)+'</p></div>'; }
-    });
-    window.__closeOwnerMenu?.();
-  }
-
-  function install(){
-    ensureDeliveryPage();
-    addDeliveryButtons();
-    const originalArea=window.showOwnerArea;
-    if(originalArea && !originalArea.__deliveryPatched){
-      const wrapped=function(area){ if(area==='delivery'){showDelivery();return;} return originalArea.apply(this,arguments); };
-      wrapped.__deliveryPatched=true; window.showOwnerArea=wrapped;
-    }
-    const originalTab=window.showTab;
-    if(originalTab && !originalTab.__deliveryPatched){
-      const wrapped=function(tab){ if(tab==='delivery'){showDelivery();return;} return originalTab.apply(this,arguments); };
-      wrapped.__deliveryPatched=true; window.showTab=wrapped;
-    }
-    revealOwner();
-  }
-
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',install,{once:true}); else install();
-  window.addEventListener('load',()=>{install();revealOwner();},{once:true});
-  setTimeout(()=>{install();revealOwner();document.documentElement.classList.remove('ff-booting');},1200);
-  setTimeout(()=>{if(requestedOwner()) revealOwner();},3000);
-})();
-</script>
-'''
-          if '</body>' not in s:
-              raise SystemExit('index.html has no </body> marker')
-          s = s.replace('</body>', hotfix + '\n</body>', 1)
-          p.write_text(s, encoding='utf-8')
-          print('Patched index.html')
           PY
       - name: Commit hotfix
-        shell: bash
         run: |
-          if git diff --quiet; then
-            echo 'No changes to commit'
-            exit 0
-          fi
+          if git diff --quiet; then exit 0; fi
           git config user.name 'Fusion Flavours Fix Bot'
           git config user.email 'actions@users.noreply.github.com'
           git add index.html
