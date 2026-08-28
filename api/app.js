@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260827-refactor-29';
+const BUILD = '20260828-refactor-30';
 
 module.exports = async function handler(req, res) {
   try {
@@ -15,6 +15,7 @@ module.exports = async function handler(req, res) {
     let html = migrateLegacyHtml(fs.readFileSync(htmlPath, 'utf8'));
     const migrationIssues = migrationFailures(html);
     const mode = String(req.query?.mode || '').toLowerCase();
+    const healthRequested = String(req.query?.health || '') === '1';
 
     if (!/<\/head>/i.test(html) || !/<\/body>\s*<\/html>\s*$/i.test(html)) {
       throw new Error('index.html is missing required closing tags');
@@ -48,7 +49,28 @@ module.exports = async function handler(req, res) {
 
     html = html.replace(/<\/body>\s*<\/html>\s*$/i, `${bootstrap}\n<!-- fusion-build:${BUILD} -->\n</body></html>`);
 
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    const ownerHealth = {
+      build: BUILD,
+      mode,
+      migrationOk: migrationIssues.length === 0,
+      migrationIssues,
+      deliveryNav: /data-area=["']delivery["']/i.test(html),
+      deliveryPage: /id=["']page-delivery["']/i.test(html),
+      deliveryManagementScript: /<script\s+src=["']\/delivery-management\.js\?v=/i.test(html),
+      ownerRouterScript: /<script\s+src=["']\/owner-router\.js\?v=/i.test(html),
+      fusionRuntimeScript: /<script\s+src=["']\/fusion-runtime\.js\?v=/i.test(html),
+      bootModeOwner: /window\.__FUSION_BOOT_MODE__=["']owner["']/i.test(html),
+      legacyShowTabAbsent: !/window\.showTab\s*=/i.test(html),
+      legacyOwnerAreaAbsent: !/window\.showOwnerArea\s*=/i.test(html),
+      legacyOwnerPageAbsent: !/window\.showOwnerPage\s*=/i.test(html),
+      legacyReliabilityPatchAbsent: !/Owner navigation reliability fix/i.test(html),
+      legacyV383OwnerEntryAbsent: !/Owner must be its own exclusive top-level view/i.test(html),
+      legacyV383CustomerButtonAbsent: !/Customer View from Owner always returns to the Welcome Hub/i.test(html),
+      legacyV383PopstateAbsent: !/Browser back\/forward follows the customer hub routes properly/i.test(html),
+      legacyPreV383RouterAbsent: !/Default route is now the Welcome Hub/i.test(html)
+    };
+    ownerHealth.ok = mode === 'owner' && ownerHealth.migrationOk && ownerHealth.deliveryNav && ownerHealth.deliveryPage && ownerHealth.deliveryManagementScript && ownerHealth.ownerRouterScript && ownerHealth.fusionRuntimeScript && ownerHealth.bootModeOwner && ownerHealth.legacyShowTabAbsent && ownerHealth.legacyOwnerAreaAbsent && ownerHealth.legacyOwnerPageAbsent && ownerHealth.legacyReliabilityPatchAbsent && ownerHealth.legacyV383OwnerEntryAbsent && ownerHealth.legacyV383CustomerButtonAbsent && ownerHealth.legacyV383PopstateAbsent && ownerHealth.legacyPreV383RouterAbsent;
+
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
@@ -58,8 +80,15 @@ module.exports = async function handler(req, res) {
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.setHeader('X-Fusion-Build', BUILD);
     res.setHeader('X-Fusion-Migration', migrationIssues.length ? migrationIssues.join(',') : 'ok');
-    if (mode === 'owner') res.setHeader('X-Fusion-Owner-Shell', 'delivery-present');
+    if (mode === 'owner') res.setHeader('X-Fusion-Owner-Shell', ownerHealth.ok ? 'verified' : 'invalid');
 
+    if (healthRequested) {
+      console.log('Fusion Owner Health', JSON.stringify(ownerHealth));
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      return res.status(ownerHealth.ok ? 200 : 500).send(JSON.stringify(ownerHealth));
+    }
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
     if (req.method === 'HEAD') return res.status(200).end();
     return res.status(200).send(html);
   } catch (err) {
