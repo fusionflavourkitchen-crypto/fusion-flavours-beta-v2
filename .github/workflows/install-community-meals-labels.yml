@@ -1,0 +1,33 @@
+name: Install Community Meals labels
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-community-meals-labels.yml'
+permissions:
+  contents: write
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add Community Meals label script
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          tag='<script src="/community-meals-labels.js?v=20260828a"></script>'
+          if tag not in s:
+              s=s.replace('</body>',tag+'\n</body>',1)
+              p.write_text(s)
+          PY
+      - name: Commit labels update
+        run: |
+          git config user.name "Fusion Flavours Fix Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Rename Harnell display labels to Community Meals"
+          git push
