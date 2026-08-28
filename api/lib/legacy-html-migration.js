@@ -8,6 +8,7 @@ function stripRetiredOwnerControl(source) {
   return String(source || '')
     .replace(/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\);?/g, '')
     .replace(/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\);?/g, '')
+    .replace(/\$\('ownerEntry'\)\.onclick=\(\)=>\{\$\('headerMenu'\)\.classList\.add\('hidden'\);\$\('customer'\)\.classList\.add\('hidden'\);\$\('owner'\)\.classList\.remove\('hidden'\);if\(token\)openOwner\(\)\};\$\('customerBtn'\)\.onclick=\(\)=>\{\$\('owner'\)\.classList\.add\('hidden'\);\$\('customer'\)\.classList\.remove\('hidden'\)\}\s*/i, '')
     .replace(/window\.toggleOwnerNav=\(\)=>\{\$\('ownerNavMenu'\)\?\.classList\.toggle\('hidden'\)\}\s*function ownerTabLabel\(t\)\{[\s\S]*?\}\s*/i, '')
     .replace(/window\.showTab=t=>\{[\s\S]*?\}\s*\nasync function loadOwnerData/i, 'async function loadOwnerData')
     .replace(/window\.showOwnerArea=area=>\{[\s\S]*?decorateOwnerPage\(t\);\s*\};/i, '')
@@ -63,6 +64,7 @@ function migrationFailures(source) {
   if (/window\.showOwnerPage\s*=/i.test(html)) failures.push('legacy-owner-page');
   if (/window\.toggleOwnerNav\s*=\s*\(\)\s*=>/i.test(html)) failures.push('legacy-owner-menu-toggle');
   if (/function\s+ownerTabLabel\s*\(/i.test(html)) failures.push('legacy-owner-tab-label');
+  if (/\$\('ownerEntry'\)\.onclick=\(\)=>\{\$\('headerMenu'\)\.classList\.add\('hidden'\)/i.test(html)) failures.push('legacy-owner-entry-basic');
   if (/Owner navigation reliability fix/i.test(html)) failures.push('legacy-owner-navigation-fix');
   if (/setTimeout\(tidyTradingPerformanceV332\s*,\s*0\s*\)/i.test(html)) failures.push('performance-timer');
   if (/setTimeout\(\(\)\s*=>\s*\{\s*const p=currentFinancialPeriod\(\);\s*if\(p\)pnlSelectedPeriod=p\.no\s*\}\s*,\s*300\s*\)/i.test(html)) failures.push('period-timer');
