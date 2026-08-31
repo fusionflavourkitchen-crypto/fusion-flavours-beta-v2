@@ -7,7 +7,7 @@ try{window.serviceOpen=()=>true}catch(e){}
 function buildWelcomeNote(){
   const note=document.createElement('div');
   note.className='mainDeliveryWelcomeNote';
-  note.dataset.design='chef-note-v3';
+  note.dataset.design='chef-note-v4';
   note.style.cssText='position:relative;background:linear-gradient(180deg,#1a1a1a 0%,#121212 100%);color:#f8f2ea;border:2px solid #f26b21;border-radius:18px;padding:26px 24px 24px;margin:14px 0 22px;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.04);overflow:hidden';
   note.innerHTML=`
     <div aria-hidden="true" style="position:absolute;left:12px;top:12px;width:34px;height:34px;border-left:2px solid #f26b21;border-top:2px solid #f26b21;border-radius:10px 0 0 0;opacity:.9"></div>
@@ -32,22 +32,18 @@ function normalText(el){
 }
 
 function isLegacyCreamNote(el){
-  if(!el || el.classList?.contains('mainDeliveryWelcomeNote'))return false;
+  if(!el || el===document.body || el===document.documentElement || el.classList?.contains('mainDeliveryWelcomeNote'))return false;
   const text=normalText(el);
-  return /Fresh food,\s*cooked with care\.?/i.test(text) && /Thanks for supporting Fusion Flavours/i.test(text);
+  const oldHeading=/Fresh food,\s*cooked with care\.?/i.test(text);
+  const oldBody=/Order from the menu/i.test(text) && /cook(?:ed)? your food fresh/i.test(text);
+  const oldSignoff=/Thanks for supporting Fusion Flavours/i.test(text);
+  return oldHeading && (oldBody || oldSignoff);
 }
 
 function removeLegacyCreamNote(){
-  const matches=[...document.querySelectorAll('div,section,article,aside')].filter(isLegacyCreamNote);
+  const matches=[...document.querySelectorAll('body *')].filter(isLegacyCreamNote);
   const smallest=matches.filter(el=>![...el.children].some(child=>isLegacyCreamNote(child)));
   smallest.forEach(el=>el.remove());
-}
-
-function findDeliveryHome(){
-  const controls=[...document.querySelectorAll('a,button')];
-  let home=controls.find(el=>/^(?:←\s*)?Fusion Flavours Home$/i.test(normalText(el)));
-  if(home)return home;
-  return [...document.querySelectorAll('h1,h2,h3,div,span')].find(el=>/^(?:←\s*)?Fusion Flavours Home$/i.test(normalText(el)))||null;
 }
 
 function isOpenDeliveryCard(el){
@@ -56,7 +52,7 @@ function isOpenDeliveryCard(el){
 }
 
 function findOpenDeliveryCard(){
-  const matches=[...document.querySelectorAll('div,section,article,aside')].filter(isOpenDeliveryCard);
+  const matches=[...document.querySelectorAll('body *')].filter(isOpenDeliveryCard);
   if(!matches.length)return null;
   return matches.find(el=>![...el.children].some(child=>isOpenDeliveryCard(child)))||matches[0];
 }
@@ -72,7 +68,7 @@ function cleanMainDelivery(){
   const notes=[...document.querySelectorAll('.mainDeliveryWelcomeNote')];
   notes.slice(1).forEach(n=>n.remove());
   let note=notes[0]||null;
-  if(note && note.dataset.design!=='chef-note-v3'){
+  if(note && note.dataset.design!=='chef-note-v4'){
     const replacement=buildWelcomeNote();
     note.replaceWith(replacement);
     note=replacement;
@@ -94,12 +90,15 @@ const observer=new MutationObserver(()=>{
   requestAnimationFrame(()=>{queued=false;cleanMainDelivery()});
 });
 function startMainDeliveryCleanup(){
-  if(document.body)observer.observe(document.body,{subtree:true,childList:true});
+  if(document.body)observer.observe(document.body,{subtree:true,childList:true,characterData:true});
   cleanMainDelivery();
+  setTimeout(cleanMainDelivery,100);
   setTimeout(cleanMainDelivery,250);
-  setTimeout(cleanMainDelivery,750);
-  setTimeout(cleanMainDelivery,1500);
-  setTimeout(cleanMainDelivery,3000);
+  setTimeout(cleanMainDelivery,500);
+  setTimeout(cleanMainDelivery,1000);
+  setTimeout(cleanMainDelivery,2000);
+  setTimeout(cleanMainDelivery,4000);
+  setTimeout(cleanMainDelivery,8000);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startMainDeliveryCleanup,{once:true});else startMainDeliveryCleanup();
 })();
