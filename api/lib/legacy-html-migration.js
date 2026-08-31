@@ -43,6 +43,18 @@ function ensureCanonicalOwnerShell(source) {
   return html;
 }
 
+function ensureDeliveryChefNote(source) {
+  let html = String(source || '');
+  if (/id=["']deliveryChefNote["']/i.test(html)) return html;
+
+  const note = `<div id="deliveryChefNote" data-design="chef-note-v3" style="margin:14px 0 16px;padding:18px 20px;background:linear-gradient(145deg,#171717,#26211e);color:#fff;border:2px solid #f26b21;border-radius:18px;text-align:center;box-shadow:0 7px 20px rgba(0,0,0,.12);font-family:'Segoe Print','Bradley Hand','Comic Sans MS',cursive;line-height:1.45;font-size:16px;font-weight:700">We keep things fresh and real.<br>Your food is cooked fresh to order,<br>then sent on its way to you<br>as soon as it’s ready.<br><br>Thank you for your patience and support<br>— it means everything.<br><br>Thanks!<br><strong style="color:#f26b21;font-size:18px">Chef Dan</strong></div>`;
+
+  return html.replace(
+    /(<a\s+class=["']deliveryHomeBack["'][^>]*>[^<]*<\/a>)/i,
+    `$1\n${note}`
+  );
+}
+
 function legacyShowTabDiagnostics(source) {
   const html = String(source || '');
   const out = [];
@@ -91,13 +103,14 @@ function validateMigratedHtml(source) {
 }
 
 function migrateLegacyHtml(source) {
-  return ensureCanonicalOwnerShell(stripRetiredOwnerControl(source));
+  return ensureDeliveryChefNote(ensureCanonicalOwnerShell(stripRetiredOwnerControl(source)));
 }
 
 module.exports = {
   migrateLegacyHtml,
   stripRetiredOwnerControl,
   ensureCanonicalOwnerShell,
+  ensureDeliveryChefNote,
   legacyShowTabDiagnostics,
   migrationFailures,
   validateMigratedHtml
