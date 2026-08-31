@@ -31,6 +31,11 @@ function cleanMainDelivery(){
   const customer=document.getElementById('customer');
   if(!customer)return;
 
+  // Self-heal the short-lived broken server-rendered note experiment. That version
+  // ran a second MutationObserver against the same area and could loop with this module.
+  const conflictingServerNote=document.getElementById('mainDeliveryChefNote');
+  if(conflictingServerNote) conflictingServerNote.remove();
+
   const notes=[...customer.querySelectorAll('.mainDeliveryWelcomeNote')];
   notes.slice(1).forEach(n=>n.remove());
   let note=notes[0]||null;
