@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260831-delivery-note-42';
+const BUILD = '20260831-delivery-note-43';
 
 const DELIVERY_CHEF_NOTE = `<div class="mainDeliveryWelcomeNote" data-design="chef-note-v3" style="position:relative;background:linear-gradient(180deg,#1a1a1a 0%,#121212 100%);color:#f8f2ea;border:2px solid #f26b21;border-radius:18px;padding:26px 24px 24px;margin:14px 0 22px;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.04);overflow:hidden">
   <div aria-hidden="true" style="position:absolute;left:12px;top:12px;width:34px;height:34px;border-left:2px solid #f26b21;border-top:2px solid #f26b21;border-radius:10px 0 0 0;opacity:.9"></div>
@@ -39,7 +39,7 @@ module.exports = async function handler(req, res) {
     }
 
     html = html.replace(
-      /(<a class="deliveryHomeBack" href="\?view=home">← Fusion Flavours Home<\/a>)(?!\s*<div class="mainDeliveryWelcomeNote")/g,
+      /(<a\b[^>]*>\s*←\s*Fusion Flavours Home\s*<\/a>)(?!\s*<div class="mainDeliveryWelcomeNote")/gi,
       `$1\n${DELIVERY_CHEF_NOTE}`
     );
 
