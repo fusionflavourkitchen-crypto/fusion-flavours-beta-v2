@@ -33,70 +33,72 @@ function isLegacyCreamNote(el){
   return /Fresh food,\s*cooked with care\.?/i.test(text) && /Thanks for supporting Fusion Flavours/i.test(text);
 }
 
-function removeLegacyCreamNote(customer){
-  const matches=[...customer.querySelectorAll('div,section,article,aside')].filter(isLegacyCreamNote);
-  // Remove only the smallest matching containers so a large page wrapper can never be deleted.
+function removeLegacyCreamNote(scope){
+  const root=scope||document.body;
+  if(!root)return;
+  const matches=[...root.querySelectorAll('div,section,article,aside')].filter(isLegacyCreamNote);
   const smallest=matches.filter(el=>![...el.children].some(child=>isLegacyCreamNote(child)));
   smallest.forEach(el=>el.remove());
 }
 
+function findOpeningHero(){
+  const heroes=[...document.querySelectorAll('.hero')];
+  return heroes.find(h=>/Delivery area/i.test(h.textContent||'')) ||
+         heroes.find(h=>/\bOpen\b/i.test(h.textContent||'')) ||
+         [...document.querySelectorAll('div,section,article')].find(el=>/Delivery area:/i.test(el.textContent||'') && /Open\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(el.textContent||'')) ||
+         null;
+}
+
 function cleanMainDelivery(){
-  const customer=document.getElementById('customer');
-  if(!customer)return;
+  const openingHero=findOpeningHero();
+  if(!openingHero)return;
 
-  // Remove both retired note implementations before maintaining the single approved note.
+  const scope=document.getElementById('customer') || openingHero.closest('main') || openingHero.parentElement || document.body;
+
   const conflictingServerNote=document.getElementById('mainDeliveryChefNote');
-  if(conflictingServerNote) conflictingServerNote.remove();
-  removeLegacyCreamNote(customer);
+  if(conflictingServerNote)conflictingServerNote.remove();
+  removeLegacyCreamNote(scope);
 
-  const notes=[...customer.querySelectorAll('.mainDeliveryWelcomeNote')];
+  const notes=[...document.querySelectorAll('.mainDeliveryWelcomeNote')];
   notes.slice(1).forEach(n=>n.remove());
   let note=notes[0]||null;
 
-  const heroes=[...customer.querySelectorAll('.hero')];
-  const openingHero=heroes.find(h=>/\bOpen\b/i.test(h.textContent||'') || /Delivery area/i.test(h.textContent||'')) || heroes[0] || null;
-
-  // Rebuild old/plain versions so the note always uses the approved handwritten design.
   if(note && note.dataset.design!=='chef-note-v2'){
     const replacement=buildWelcomeNote();
     note.replaceWith(replacement);
     note=replacement;
   }
-  if(!note) note=buildWelcomeNote();
+  if(!note)note=buildWelcomeNote();
 
-  if(openingHero && openingHero.parentNode){
-    if(note.nextElementSibling!==openingHero) openingHero.parentNode.insertBefore(note,openingHero);
-  }else{
-    const links=[...customer.querySelectorAll('a')];
-    const back=links.find(a=>/Fusion Flavours Home|Back to Fusion Flavours/i.test(a.textContent||''));
-    if(back){
-      const holder=back.parentElement||back;
-      holder.insertAdjacentElement('afterend',note);
-    }else if(!note.isConnected){
-      customer.prepend(note);
-    }
+  if(openingHero.parentNode && note.nextElementSibling!==openingHero){
+    openingHero.parentNode.insertBefore(note,openingHero);
   }
 
-  if(openingHero){
-    const eyebrow=openingHero.querySelector(':scope > small');
-    if(eyebrow && /pre\s*-?order/i.test(eyebrow.textContent||'')) eyebrow.remove();
-  }
+  const eyebrow=openingHero.querySelector(':scope > small');
+  if(eyebrow && /pre\s*-?order/i.test(eyebrow.textContent||''))eyebrow.remove();
 
   const preorder=document.getElementById('preorderBox');
-  if(preorder) preorder.remove();
+  if(preorder)preorder.remove();
 
-  customer.querySelectorAll('[alt],[title],[aria-label]').forEach(el=>{
+  scope.querySelectorAll('[alt],[title],[aria-label]').forEach(el=>{
     ['alt','title','aria-label'].forEach(a=>{
       const v=el.getAttribute(a);
-      if(v && /pre\s*-?order/i.test(v)) el.setAttribute(a,v.replace(/pre\s*-?order(?:ing)?/gi,'ordering'));
+      if(v && /pre\s*-?order/i.test(v))el.setAttribute(a,v.replace(/pre\s*-?order(?:ing)?/gi,'ordering'));
     });
   });
 }
 
-const observer=new MutationObserver(cleanMainDelivery);
+let queued=false;
+const observer=new MutationObserver(()=>{
+  if(queued)return;
+  queued=true;
+  requestAnimationFrame(()=>{queued=false;cleanMainDelivery()});
+});
 function startMainDeliveryCleanup(){
   if(document.body)observer.observe(document.body,{subtree:true,childList:true});
   cleanMainDelivery();
+  setTimeout(cleanMainDelivery,300);
+  setTimeout(cleanMainDelivery,1000);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startMainDeliveryCleanup,{once:true});else startMainDeliveryCleanup();
 })();
