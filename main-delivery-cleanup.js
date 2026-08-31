@@ -8,6 +8,7 @@ let rerendered=false;
 function buildWelcomeNote(){
   const note=document.createElement('div');
   note.className='mainDeliveryWelcomeNote';
+  note.dataset.design='chef-note-v2';
   note.style.cssText='position:relative;background:linear-gradient(180deg,#1a1a1a 0%,#121212 100%);color:#f8f2ea;border:2px solid #f26b21;border-radius:18px;padding:26px 24px 24px;margin:0 0 22px;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.04);overflow:hidden';
   note.innerHTML=`
     <div aria-hidden="true" style="position:absolute;left:12px;top:12px;width:34px;height:34px;border-left:2px solid #f26b21;border-top:2px solid #f26b21;border-radius:10px 0 0 0;opacity:.9"></div>
@@ -27,14 +28,27 @@ function buildWelcomeNote(){
   return note;
 }
 
+function isLegacyCreamNote(el){
+  if(!el || el.classList?.contains('mainDeliveryWelcomeNote'))return false;
+  const text=String(el.textContent||'').replace(/\s+/g,' ').trim();
+  return /Fresh food,\s*cooked with care\.?/i.test(text) && /Thanks for supporting Fusion Flavours/i.test(text);
+}
+
+function removeLegacyCreamNote(customer){
+  const matches=[...customer.querySelectorAll('div,section,article,aside')].filter(isLegacyCreamNote);
+  // Remove only the smallest matching containers so a large page wrapper can never be deleted.
+  const smallest=matches.filter(el=>![...el.children].some(child=>isLegacyCreamNote(child)));
+  smallest.forEach(el=>el.remove());
+}
+
 function cleanMainDelivery(){
   const customer=document.getElementById('customer');
   if(!customer)return;
 
-  // Self-heal the short-lived broken server-rendered note experiment. That version
-  // ran a second MutationObserver against the same area and could loop with this module.
+  // Remove both retired note implementations before maintaining the single approved note.
   const conflictingServerNote=document.getElementById('mainDeliveryChefNote');
   if(conflictingServerNote) conflictingServerNote.remove();
+  removeLegacyCreamNote(customer);
 
   const notes=[...customer.querySelectorAll('.mainDeliveryWelcomeNote')];
   notes.slice(1).forEach(n=>n.remove());
@@ -46,14 +60,10 @@ function cleanMainDelivery(){
   // Rebuild old/plain versions so the note always uses the approved handwritten design.
   if(note && note.dataset.design!=='chef-note-v2'){
     const replacement=buildWelcomeNote();
-    replacement.dataset.design='chef-note-v2';
     note.replaceWith(replacement);
     note=replacement;
   }
-  if(!note){
-    note=buildWelcomeNote();
-    note.dataset.design='chef-note-v2';
-  }
+  if(!note) note=buildWelcomeNote();
 
   if(openingHero && openingHero.parentNode){
     if(note.nextElementSibling!==openingHero) openingHero.parentNode.insertBefore(note,openingHero);
