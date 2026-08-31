@@ -8,7 +8,7 @@ function buildWelcomeNote(){
   const note=document.createElement('div');
   note.className='mainDeliveryWelcomeNote';
   note.dataset.design='chef-note-v2';
-  note.style.cssText='position:relative;background:linear-gradient(180deg,#1a1a1a 0%,#121212 100%);color:#f8f2ea;border:2px solid #f26b21;border-radius:18px;padding:26px 24px 24px;margin:0 0 22px;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.04);overflow:hidden';
+  note.style.cssText='position:relative;background:linear-gradient(180deg,#1a1a1a 0%,#121212 100%);color:#f8f2ea;border:2px solid #f26b21;border-radius:18px;padding:26px 24px 24px;margin:14px 0 22px;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.04);overflow:hidden';
   note.innerHTML=`
     <div aria-hidden="true" style="position:absolute;left:12px;top:12px;width:34px;height:34px;border-left:2px solid #f26b21;border-top:2px solid #f26b21;border-radius:10px 0 0 0;opacity:.9"></div>
     <div aria-hidden="true" style="position:absolute;right:12px;bottom:12px;width:34px;height:34px;border-right:2px solid #f26b21;border-bottom:2px solid #f26b21;border-radius:0 0 10px 0;opacity:.9"></div>
@@ -33,36 +33,36 @@ function isLegacyCreamNote(el){
   return /Fresh food,\s*cooked with care\.?/i.test(text) && /Thanks for supporting Fusion Flavours/i.test(text);
 }
 
-function removeLegacyCreamNote(scope){
-  const root=scope||document.body;
-  if(!root)return;
-  const matches=[...root.querySelectorAll('div,section,article,aside')].filter(isLegacyCreamNote);
+function removeLegacyCreamNote(){
+  const matches=[...document.querySelectorAll('div,section,article,aside')].filter(isLegacyCreamNote);
   const smallest=matches.filter(el=>![...el.children].some(child=>isLegacyCreamNote(child)));
   smallest.forEach(el=>el.remove());
 }
 
-function findOpeningHero(){
-  const heroes=[...document.querySelectorAll('.hero')];
-  return heroes.find(h=>/Delivery area/i.test(h.textContent||'')) ||
-         heroes.find(h=>/\bOpen\b/i.test(h.textContent||'')) ||
-         [...document.querySelectorAll('div,section,article')].find(el=>/Delivery area:/i.test(el.textContent||'') && /Open\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(el.textContent||'')) ||
-         null;
+function findDeliveryHome(){
+  const controls=[...document.querySelectorAll('a,button')];
+  let home=controls.find(el=>/^(?:←\s*)?Fusion Flavours Home$/i.test((el.textContent||'').trim()));
+  if(home)return home;
+  return [...document.querySelectorAll('h1,h2,h3,div,span')].find(el=>/^(?:←\s*)?Fusion Flavours Home$/i.test((el.textContent||'').trim()))||null;
+}
+
+function isDeliveryScreen(){
+  const text=String(document.body?.innerText||'').replace(/\s+/g,' ');
+  return /Delivery area\s*:/i.test(text) && /Open\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(text);
 }
 
 function cleanMainDelivery(){
-  const openingHero=findOpeningHero();
-  if(!openingHero)return;
-
-  const scope=document.getElementById('customer') || openingHero.closest('main') || openingHero.parentElement || document.body;
+  if(!isDeliveryScreen())return;
+  const home=findDeliveryHome();
+  if(!home)return;
 
   const conflictingServerNote=document.getElementById('mainDeliveryChefNote');
   if(conflictingServerNote)conflictingServerNote.remove();
-  removeLegacyCreamNote(scope);
+  removeLegacyCreamNote();
 
   const notes=[...document.querySelectorAll('.mainDeliveryWelcomeNote')];
   notes.slice(1).forEach(n=>n.remove());
   let note=notes[0]||null;
-
   if(note && note.dataset.design!=='chef-note-v2'){
     const replacement=buildWelcomeNote();
     note.replaceWith(replacement);
@@ -70,22 +70,13 @@ function cleanMainDelivery(){
   }
   if(!note)note=buildWelcomeNote();
 
-  if(openingHero.parentNode && note.nextElementSibling!==openingHero){
-    openingHero.parentNode.insertBefore(note,openingHero);
+  const anchor=home.closest('.customerNavRow')||home;
+  if(!note.isConnected || note.previousElementSibling!==anchor){
+    anchor.insertAdjacentElement('afterend',note);
   }
-
-  const eyebrow=openingHero.querySelector(':scope > small');
-  if(eyebrow && /pre\s*-?order/i.test(eyebrow.textContent||''))eyebrow.remove();
 
   const preorder=document.getElementById('preorderBox');
   if(preorder)preorder.remove();
-
-  scope.querySelectorAll('[alt],[title],[aria-label]').forEach(el=>{
-    ['alt','title','aria-label'].forEach(a=>{
-      const v=el.getAttribute(a);
-      if(v && /pre\s*-?order/i.test(v))el.setAttribute(a,v.replace(/pre\s*-?order(?:ing)?/gi,'ordering'));
-    });
-  });
 }
 
 let queued=false;
@@ -97,8 +88,9 @@ const observer=new MutationObserver(()=>{
 function startMainDeliveryCleanup(){
   if(document.body)observer.observe(document.body,{subtree:true,childList:true});
   cleanMainDelivery();
-  setTimeout(cleanMainDelivery,300);
-  setTimeout(cleanMainDelivery,1000);
+  setTimeout(cleanMainDelivery,250);
+  setTimeout(cleanMainDelivery,750);
+  setTimeout(cleanMainDelivery,1500);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startMainDeliveryCleanup,{once:true});else startMainDeliveryCleanup();
 })();
