@@ -4,7 +4,6 @@
 
 try{window.serviceOpen=()=>true}catch(e){}
 
-let rerendered=false;
 function buildWelcomeNote(){
   const note=document.createElement('div');
   note.className='mainDeliveryWelcomeNote';
@@ -92,14 +91,12 @@ function cleanMainDelivery(){
       if(v && /pre\s*-?order/i.test(v)) el.setAttribute(a,v.replace(/pre\s*-?order(?:ing)?/gi,'ordering'));
     });
   });
-
-  if(!rerendered && !customer.classList.contains('hidden') && typeof window.renderCustomer==='function' && window.state?.settings){
-    rerendered=true;
-    try{window.renderCustomer()}catch(e){console.warn('Main Delivery refresh',e)}
-  }
 }
 
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',cleanMainDelivery,{once:true});else cleanMainDelivery();
 const observer=new MutationObserver(cleanMainDelivery);
-if(document.body)observer.observe(document.body,{subtree:true,childList:true});
+function startMainDeliveryCleanup(){
+  if(document.body)observer.observe(document.body,{subtree:true,childList:true});
+  cleanMainDelivery();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startMainDeliveryCleanup,{once:true});else startMainDeliveryCleanup();
 })();
