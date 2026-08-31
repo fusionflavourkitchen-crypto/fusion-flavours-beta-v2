@@ -7,7 +7,7 @@ try{window.serviceOpen=()=>true}catch(e){}
 function buildWelcomeNote(){
   const note=document.createElement('div');
   note.className='mainDeliveryWelcomeNote';
-  note.dataset.design='chef-note-v2';
+  note.dataset.design='chef-note-v3';
   note.style.cssText='position:relative;background:linear-gradient(180deg,#1a1a1a 0%,#121212 100%);color:#f8f2ea;border:2px solid #f26b21;border-radius:18px;padding:26px 24px 24px;margin:14px 0 22px;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.04);overflow:hidden';
   note.innerHTML=`
     <div aria-hidden="true" style="position:absolute;left:12px;top:12px;width:34px;height:34px;border-left:2px solid #f26b21;border-top:2px solid #f26b21;border-radius:10px 0 0 0;opacity:.9"></div>
@@ -27,9 +27,13 @@ function buildWelcomeNote(){
   return note;
 }
 
+function normalText(el){
+  return String(el?.innerText||el?.textContent||'').replace(/\s+/g,' ').trim();
+}
+
 function isLegacyCreamNote(el){
   if(!el || el.classList?.contains('mainDeliveryWelcomeNote'))return false;
-  const text=String(el.textContent||'').replace(/\s+/g,' ').trim();
+  const text=normalText(el);
   return /Fresh food,\s*cooked with care\.?/i.test(text) && /Thanks for supporting Fusion Flavours/i.test(text);
 }
 
@@ -41,20 +45,25 @@ function removeLegacyCreamNote(){
 
 function findDeliveryHome(){
   const controls=[...document.querySelectorAll('a,button')];
-  let home=controls.find(el=>/^(?:←\s*)?Fusion Flavours Home$/i.test((el.textContent||'').trim()));
+  let home=controls.find(el=>/^(?:←\s*)?Fusion Flavours Home$/i.test(normalText(el)));
   if(home)return home;
-  return [...document.querySelectorAll('h1,h2,h3,div,span')].find(el=>/^(?:←\s*)?Fusion Flavours Home$/i.test((el.textContent||'').trim()))||null;
+  return [...document.querySelectorAll('h1,h2,h3,div,span')].find(el=>/^(?:←\s*)?Fusion Flavours Home$/i.test(normalText(el)))||null;
 }
 
-function isDeliveryScreen(){
-  const text=String(document.body?.innerText||'').replace(/\s+/g,' ');
-  return /Delivery area\s*:/i.test(text) && /Open\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(text);
+function isOpenDeliveryCard(el){
+  const text=normalText(el);
+  return /^Open\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(text) && /Delivery area\s*:/i.test(text);
+}
+
+function findOpenDeliveryCard(){
+  const matches=[...document.querySelectorAll('div,section,article,aside')].filter(isOpenDeliveryCard);
+  if(!matches.length)return null;
+  return matches.find(el=>![...el.children].some(child=>isOpenDeliveryCard(child)))||matches[0];
 }
 
 function cleanMainDelivery(){
-  if(!isDeliveryScreen())return;
-  const home=findDeliveryHome();
-  if(!home)return;
+  const card=findOpenDeliveryCard();
+  if(!card)return;
 
   const conflictingServerNote=document.getElementById('mainDeliveryChefNote');
   if(conflictingServerNote)conflictingServerNote.remove();
@@ -63,16 +72,15 @@ function cleanMainDelivery(){
   const notes=[...document.querySelectorAll('.mainDeliveryWelcomeNote')];
   notes.slice(1).forEach(n=>n.remove());
   let note=notes[0]||null;
-  if(note && note.dataset.design!=='chef-note-v2'){
+  if(note && note.dataset.design!=='chef-note-v3'){
     const replacement=buildWelcomeNote();
     note.replaceWith(replacement);
     note=replacement;
   }
   if(!note)note=buildWelcomeNote();
 
-  const anchor=home.closest('.customerNavRow')||home;
-  if(!note.isConnected || note.previousElementSibling!==anchor){
-    anchor.insertAdjacentElement('afterend',note);
+  if(card.parentElement && (note.parentElement!==card.parentElement || note.nextElementSibling!==card)){
+    card.parentElement.insertBefore(note,card);
   }
 
   const preorder=document.getElementById('preorderBox');
@@ -91,6 +99,7 @@ function startMainDeliveryCleanup(){
   setTimeout(cleanMainDelivery,250);
   setTimeout(cleanMainDelivery,750);
   setTimeout(cleanMainDelivery,1500);
+  setTimeout(cleanMainDelivery,3000);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startMainDeliveryCleanup,{once:true});else startMainDeliveryCleanup();
 })();
