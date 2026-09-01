@@ -50,6 +50,18 @@ for (const reference of staticReferences) {
   assert(fs.existsSync(path.join(root, reference)), `Missing local asset: ${reference}`);
 }
 
+const temporaryDishImages = {
+  'Fusion House Wings': 'public/menu-images/fusion-house-wings-ai.webp',
+  Keftedes: 'public/menu-images/keftedes-ai.webp',
+  'Mediterranean Veggie Pasta': 'public/menu-images/mediterranean-veggie-pasta-ai.webp',
+  'Greek Salad': 'public/menu-images/greek-salad-ai.webp',
+  Houmous: 'public/menu-images/houmous-ai.webp'
+};
+for (const [dish, asset] of Object.entries(temporaryDishImages)) {
+  assert(fs.existsSync(path.join(root, asset)), `Missing temporary image for ${dish}: ${asset}`);
+  assert(html.includes(`'${dish}':'/${asset.replace(/^public\//, '')}'`), `Temporary image mapping missing for ${dish}`);
+}
+
 async function verifyHealthHandler() {
   const handler = require('../api/app');
   let statusCode = 200;
