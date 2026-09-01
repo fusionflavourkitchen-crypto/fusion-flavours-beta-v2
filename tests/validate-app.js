@@ -62,6 +62,16 @@ for (const [dish, asset] of Object.entries(temporaryDishImages)) {
   assert(html.includes(`'${dish}':'/${asset.replace(/^public\//, '')}'`), `Temporary image mapping missing for ${dish}`);
 }
 
+const temporaryRetailImages = {
+  'Signature House Blend Retail Pouch': 'public/menu-images/signature-house-blend-retail-ai.webp',
+  'Fiery House Blend': 'public/menu-images/fiery-house-blend-ai.webp',
+  'Fusion Fries Blend': 'public/menu-images/fusion-fries-blend-ai.webp'
+};
+for (const [product, asset] of Object.entries(temporaryRetailImages)) {
+  assert(fs.existsSync(path.join(root, asset)), `Missing temporary retail image for ${product}: ${asset}`);
+  assert(html.includes(`'${product}':'/${asset.replace(/^public\//, '')}'`), `Temporary retail image mapping missing for ${product}`);
+}
+
 async function verifyHealthHandler() {
   const handler = require('../api/app');
   let statusCode = 200;

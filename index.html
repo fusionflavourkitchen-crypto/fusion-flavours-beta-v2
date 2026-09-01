@@ -772,6 +772,11 @@ function retailProductNetWeight(i){
 }
 
 function saveRetailBasket(){sessionStorage.setItem('ffRetailBasket',JSON.stringify(retailBasket))}
+const TEMP_RETAIL_IMAGES={
+  'Signature House Blend Retail Pouch':'/menu-images/signature-house-blend-retail-ai.webp',
+  'Fiery House Blend':'/menu-images/fiery-house-blend-ai.webp',
+  'Fusion Fries Blend':'/menu-images/fusion-fries-blend-ai.webp'
+};
 function retailItems(){const c=state.categories.find(x=>String(x.name).toLowerCase()==='fusion at home');return c?state.items.filter(i=>Number(i.category_id)===Number(c.id)&&i.active):[]}
 function retailItem(id){return retailItems().find(i=>Number(i.id)===Number(id))}
 function retailBasketSubtotal(){return retailBasket.reduce((n,l)=>{const i=retailItem(l.id);return n+(i?Number(i.price)*Number(l.qty):0)},0)}
@@ -792,7 +797,8 @@ function renderRetailShop(){
   $('retailProducts').innerHTML=status+(products.map(i=>{
     const stock=Number(i.stock||0),out=stock<=0;
     const ing=retailProductIngredients(i),net=retailProductNetWeight(i),allergens=Array.isArray(i.allergens)?i.allergens.filter(Boolean).join(', '):String(i.allergens||'').trim();
-    return `<article class="retailProductCard">${i.image_url?`<img src="${esc(i.image_url)}" alt="${esc(i.name)}">`:'<div class="retailProductPlaceholder">🔥</div>'}<div class="retailProductBody"><div class="row"><span class="cat">Fusion at Home</span><span class="retailProductPrice">${money(i.price)}</span></div><h3>${esc(i.name)}</h3><p>${esc(i.description||'Fusion Flavours product for your own kitchen.')}</p>${ing?`<div class="retailIngredients"><b>Ingredients:</b> ${esc(ing)}<br><b>Allergens recorded:</b> ${esc(allergens||'None recorded — check the pouch label before use')}<br><b>Net quantity:</b> ${net}g<br><b>Storage:</b> Store in a cool, dry place away from direct sunlight.<br><b>Responsible business:</b> Fusion Flavours, 44 Harnall Lane West, Coventry, CV1 4EZ.<br><span class="muted">Batch and best-before details are supplied on the pouch.</span></div>`:''}<div class="retailStock">${out?'Currently sold out':`${stock} available`}</div><button style="width:100%" ${out?'disabled':''} onclick="addRetailItem(${i.id})">${out?'Sold out':'Add to postal basket'}</button></div></article>`;
+    const img=i.image_url||TEMP_RETAIL_IMAGES[i.name]||'';
+    return `<article class="retailProductCard">${img?`<img src="${esc(img)}" alt="${esc(i.name)}">`:'<div class="retailProductPlaceholder">🔥</div>'}<div class="retailProductBody"><div class="row"><span class="cat">Fusion at Home</span><span class="retailProductPrice">${money(i.price)}</span></div><h3>${esc(i.name)}</h3><p>${esc(i.description||'Fusion Flavours product for your own kitchen.')}</p>${ing?`<div class="retailIngredients"><b>Ingredients:</b> ${esc(ing)}<br><b>Allergens recorded:</b> ${esc(allergens||'None recorded — check the pouch label before use')}<br><b>Net quantity:</b> ${net}g<br><b>Storage:</b> Store in a cool, dry place away from direct sunlight.<br><b>Responsible business:</b> Fusion Flavours, 44 Harnall Lane West, Coventry, CV1 4EZ.<br><span class="muted">Batch and best-before details are supplied on the pouch.</span></div>`:''}<div class="retailStock">${out?'Currently sold out':`${stock} available`}</div><button style="width:100%" ${out?'disabled':''} onclick="addRetailItem(${i.id})">${out?'Sold out':'Add to postal basket'}</button></div></article>`;
   }).join('')||'<div class="notice">Fusion at Home products are coming soon.</div>');
   renderRetailBasket();
   if(pay==='retail_success'){retailBasket=[];saveRetailBasket();renderRetailBasket();history.replaceState({},'',routeUrl('fusionhome'))}
