@@ -38,6 +38,7 @@ inlineScripts.forEach((source, index) => {
 
 const migrated = migrateLegacyHtml(html);
 assert.deepStrictEqual(migrationFailures(migrated), [], 'Owner-shell migration must be clean');
+assert(!/id=["']deliveryChefNote["']/i.test(migrated), 'Legacy Delivery welcome note must not be injected');
 assert(!/data-area=["']delivery["']/i.test(migrated), 'Standalone Delivery navigation must stay retired');
 assert(!/id=["']page-delivery["']/i.test(migrated), 'Standalone Delivery page must stay retired');
 assert(!/const\s+showTabV\w*\s*=\s*showTab\s*;/i.test(html), 'Legacy showTab wrapper reads the router before it loads');

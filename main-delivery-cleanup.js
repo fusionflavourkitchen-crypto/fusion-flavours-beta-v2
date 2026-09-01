@@ -61,8 +61,7 @@ function cleanMainDelivery(){
   const card=findOpenDeliveryCard();
   if(!card)return;
 
-  const conflictingServerNote=document.getElementById('mainDeliveryChefNote');
-  if(conflictingServerNote)conflictingServerNote.remove();
+  ['mainDeliveryChefNote','deliveryChefNote'].forEach(id=>document.getElementById(id)?.remove());
   removeLegacyCreamNote();
 
   const notes=[...document.querySelectorAll('.mainDeliveryWelcomeNote')];

@@ -89,7 +89,9 @@ function validateMigratedHtml(source) {
 }
 
 function migrateLegacyHtml(source) {
-  return ensureDeliveryChefNote(ensureCanonicalOwnerShell(stripRetiredOwnerControl(source)));
+  // The canonical Chef Dan note is injected by api/app.js. Keeping the old
+  // v3 note here produced a second, visible copy on the Delivery page.
+  return ensureCanonicalOwnerShell(stripRetiredOwnerControl(source));
 }
 
 module.exports = {
