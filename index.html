@@ -870,12 +870,6 @@ document.addEventListener('click',e=>{
 $('loginBtn').onclick=async()=>{try{const a=await api('/auth/v1/token?grant_type=password',{method:'POST',body:JSON.stringify({email:OWNER_EMAIL,password:$('ownerPassword').value})});token=a.access_token;sessionStorage.setItem('ffOwnerToken',token);await openOwner()}catch(e){alert(e.message)}}
 async function openOwner(){if(!token)return;$('authPanel').classList.add('hidden');$('dashboard').classList.remove('hidden');try{await loadOwnerData();showTab('dash')}catch(e){alert(e.message);if(String(e.message).toLowerCase().includes('jwt')){token='';sessionStorage.removeItem('ffOwnerToken');$('authPanel').classList.remove('hidden');$('dashboard').classList.add('hidden')}}}
 
-window.toggleOwnerNav=()=>{$('ownerNavMenu')?.classList.toggle('hidden')}
-function ownerTabLabel(t){
-  return {dash:'Dashboard',orders:'Orders',menu:'Menu',stock:'Stock',costings:'Costings',cookbook:'Cookbook',performance:'P&L / Performance',targets:'Targets',costs:'Costs & Overheads',banking:'Banking',dailyadmin:'Daily Admin',catering:'Catering',service:'Service',prep:'Prep'}[t]||t
-}
-
-window.showTab=t=>{document.querySelectorAll('.ownerPage').forEach(x=>x.classList.add('hidden'));$('page-'+t).classList.remove('hidden');document.querySelectorAll('.ownerNavMenu button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));if($('ownerNavCurrent'))$('ownerNavCurrent').textContent=ownerTabLabel(t);$('ownerNavMenu')?.classList.add('hidden');({dash:renderDashboard,orders:renderOrders,menu:renderMenuAdmin,stock:renderStock,costings:renderCostings,cookbook:renderCookbook,performance:renderPerformance,targets:renderTargets,costs:renderCostsOverheads,dailyadmin:renderDailyAdmin,catering:renderCateringAdmin,service:renderService,prep:renderPrep}[t]||(()=>{}))()}
 async function loadOwnerData(){
   const[s,c,i,o,stock,stockCategories,suppliers,supplierPrices,recipes,recipeIngredients,wasteLogs,labourLogs,businessCosts,salesTargets,cateringGallery,cateringInquiries]=await Promise.all([
     api('/rest/v1/settings?id=eq.1&select=*').then(x=>x[0]),
@@ -1817,50 +1811,6 @@ function adminAcc(title,status,body){return `<details class="adminAccordion"><su
 
 
 /* ===== v3.0 OWNER AREA / COSTING / RECIPE GROUP UPDATE ===== */
-let ownerArea='dashboard';
-const OWNER_AREAS={
-  dashboard:[['dash','Dashboard']],
-  orders:[['orders','Delivery Orders'],['harnellorders','Community Orders']],
-  kitchen:[['menu','Menu'],['stock','Stock'],['costings','Costings'],['cookbook','Cookbook'],['prep','Prep']],
-  business:[['performance','P&L / Performance'],['targets','Targets'],['dailyadmin','Daily Admin'],['costs','Costs & Overheads'],['banking','Banking']],
-  catering:[['catering','Catering']],
-  harnell:[['harnell','Community Meals']],
-  fusionhome:[['fusionhome','Fusion at Home']],
-  service:[['service','Service']]
-};
-function ownerAreaForTab(tab){
-  for(const [area,tabs] of Object.entries(OWNER_AREAS)) if(tabs.some(([id])=>id===tab)) return area;
-  return 'dashboard';
-}
-function ownerAreaLabel(area){
-  return {dashboard:'Dashboard',orders:'Orders',kitchen:'Kitchen',business:'Business',catering:'Catering',harnell:'Harnell',fusionhome:'Fusion at Home',service:'Service'}[area]||area;
-}
-function ownerAreaTabsHtml(area,current){
-  const tabs=OWNER_AREAS[area]||[];
-  if(tabs.length<2)return '';
-  return `<div class="ownerAreaTabs">${tabs.map(([id,label])=>`<button class="${id===current?'active':''}" onclick="showTab('${id}')">${label}</button>`).join('')}</div>`;
-}
-function decorateOwnerPage(tab){
-  const area=ownerAreaForTab(tab),page=$('page-'+tab); if(!page)return;
-  page.querySelector(':scope > .ownerAreaTabs')?.remove();
-  const sub=ownerAreaTabsHtml(area,tab); if(sub)page.insertAdjacentHTML('afterbegin',sub);
-  ownerArea=area;
-  if($('ownerNavCurrent'))$('ownerNavCurrent').textContent=ownerAreaLabel(area);
-  document.querySelectorAll('.ownerNavMenu button').forEach(b=>b.classList.toggle('active',b.dataset.area===area));
-}
-window.showOwnerArea=area=>{
-  const first=(OWNER_AREAS[area]||OWNER_AREAS.dashboard)[0][0];
-  ownerArea=area; showTab(first);
-};
-window.showTab=t=>{
-  document.querySelectorAll('.ownerPage').forEach(x=>x.classList.add('hidden'));
-  const page=$('page-'+t); if(!page)return;
-  page.classList.remove('hidden');
-  $('ownerNavMenu')?.classList.add('hidden');
-  const renderers={dash:renderDashboard,orders:renderOrders,harnellorders:renderHarnellOrders,menu:renderMenuAdmin,stock:renderStock,costings:renderCostings,cookbook:renderCookbook,performance:renderPerformance,targets:renderTargets,costs:renderCostsOverheads,banking:renderBanking,dailyadmin:renderDailyAdmin,catering:renderCateringAdmin,service:renderService,prep:renderPrep};
-  (renderers[t]||(()=>{}))();
-  decorateOwnerPage(t);
-};
 /* keep group subtabs after internal rerenders */
 const _renderMenuV31=renderMenuAdmin; renderMenuAdmin=function(...a){const r=_renderMenuV31(...a);queueMicrotask(()=>decorateOwnerPage('menu'));return r};
 const _renderStock=renderStock; renderStock=function(...a){const r=_renderStock(...a);queueMicrotask(()=>decorateOwnerPage('stock'));return r};
@@ -4278,14 +4228,6 @@ async function renderRetailOrders(){
   try{const os=await api('/rest/v1/retail_orders?select=*,retail_order_items(*)&order=id.desc&limit=300');page.innerHTML=`<h2>Postal Orders</h2><button style="width:100%;margin-bottom:10px" onclick="renderRetailOrders()">↻ Refresh Postal Orders</button>${os.map(o=>`<div class="retailOrderOwner"><div class="row"><b>${esc(o.public_id)}</b><b>${money(Number(o.total_pence||0)/100)}</b></div><div class="paymentBadge ${o.payment_status==='paid'?'paid':'pending'}">${esc(String(o.payment_status||'unpaid').toUpperCase())}</div><h3>${esc(o.customer_name)}</h3><div class="muted">${new Date(o.created_at).toLocaleString()}</div><p>${(o.retail_order_items||[]).map(x=>`${x.quantity} × ${esc(x.item_name)}`).join('<br>')}</p><div class="addressBox"><b>Postal address</b><br>${esc(o.address_line1)}${o.address_line2?'<br>'+esc(o.address_line2):''}<br>${esc(o.city)}${o.county?'<br>'+esc(o.county):''}<br><b>${esc(o.postcode)}</b></div><p><b>Email:</b> ${esc(o.customer_email)}</p>${o.phone?`<p><b>Phone:</b> ${esc(o.phone)}</p>`:''}<div class="split"><label>Status<select id="ro_status_${o.id}">${['awaiting_payment','new','packing','dispatched','completed','cancelled'].map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s.replaceAll('_',' ')}</option>`).join('')}</select></label><label>Tracking reference<input id="ro_track_${o.id}" value="${esc(o.tracking_reference||'')}" placeholder="Optional"></label></div><button style="width:100%" onclick="saveRetailOrder(${o.id})">Save order update</button></div>`).join('')||'<p class="muted">No postal orders yet.</p>'}`;decorateOwnerPage('retailorders')}catch(e){page.innerHTML=`<div class="notice">${esc(e.message)}</div>`;decorateOwnerPage('retailorders')}}
 window.saveRetailOrder=async id=>{try{await api('/rest/v1/retail_orders?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:$('ro_status_'+id).value,tracking_reference:$('ro_track_'+id).value.trim()||null,updated_at:new Date().toISOString()})});await loadOwnerData();await renderRetailOrders();alert('Postal order updated.')}catch(e){alert(e.message)}}
 
-/* Owner navigation */
-if(typeof OWNER_AREAS!=='undefined'){
-  if(!OWNER_AREAS.orders.some(x=>x[0]==='retailorders'))OWNER_AREAS.orders.push(['retailorders','Postal Orders']);
-  OWNER_AREAS.kitchen=OWNER_AREAS.kitchen.filter(x=>x[0]!=='fusionhome');
-}
-const ffRetailOldShowTab=window.showTab;
-window.showTab=function(t){ffRetailOldShowTab(t);if(t==='fusionhome')renderFusionAtHome();if(t==='retailorders')renderRetailOrders()}
-
 /* Add route */
 const ffRetailOldRoute=routeCustomerView;
 routeCustomerView=function(){
@@ -4295,51 +4237,6 @@ routeCustomerView=function(){
   $('retailCustomer')?.classList.remove('hidden');
   return loadRetailShop().then(()=>window.scrollTo(0,0));
 };
-</script>
-
-
-<script>
-/* ===== Owner navigation reliability fix ===== */
-(function(){
-  window.toggleOwnerNav=function(){
-    const menu=document.getElementById('ownerNavMenu');
-    if(!menu)return;
-    menu.classList.toggle('hidden');
-  };
-
-  const entry=document.getElementById('ownerEntry');
-  if(entry){
-    entry.onclick=function(e){
-      e?.preventDefault?.();
-      e?.stopPropagation?.();
-      document.getElementById('headerMenu')?.classList.add('hidden');
-      if(typeof hideTopLevelViewsV383==='function') hideTopLevelViewsV383();
-      else ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
-      document.documentElement.removeAttribute('data-initial-view');
-      document.getElementById('owner')?.classList.remove('hidden');
-      const u=new URL(location.href);
-      u.search='';
-      u.searchParams.set('view','owner');
-      history.pushState({view:'owner'},'',u);
-      const auth=document.getElementById('authPanel'),dash=document.getElementById('dashboard');
-      if(typeof token!=='undefined' && token && typeof openOwner==='function'){
-        openOwner();
-      }else{
-        auth?.classList.remove('hidden');
-        dash?.classList.add('hidden');
-      }
-    };
-  }
-
-  const toggle=document.getElementById('ownerNavToggle');
-  if(toggle){
-    toggle.onclick=function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      window.toggleOwnerNav();
-    };
-  }
-})();
 </script>
 
 
@@ -4671,83 +4568,6 @@ try{(function(){
 })();}catch(e){document.documentElement.dataset.refundError=String(e);console.error('Refund module failed:',e)}
 </script>
 
-
-<script>
-/* FF_OWNER_DELIVERY_HOTFIX_20260828 */
-(function(){
-'use strict';
-const $=id=>document.getElementById(id);
-const ownerRequested=()=>{
- const v=new URLSearchParams(location.search).get('view');
- const p=location.pathname.replace(/\/+$/,'').toLowerCase();
- return v==='owner'||p==='/owner'||p.endsWith('/owner.html');
-};
-function revealOwner(){
- if(!ownerRequested())return;
- document.documentElement.classList.remove('ff-booting');
- document.documentElement.removeAttribute('data-initial-view');
- ['welcomeHub','customer','retailCustomer','cateringCustomer','harnellCustomer','legalCustomer'].forEach(id=>$(id)?.classList.add('hidden'));
- $('owner')?.classList.remove('hidden');
- try{if(window.token&&typeof window.openOwner==='function')window.openOwner()}catch(e){}
-}
-function page(){
- let p=$('page-delivery');
- if(!p){
-   const a=$('page-service')||document.querySelector('.ownerPage:last-of-type');
-   if(a){p=document.createElement('div');p.id='page-delivery';p.className='ownerPage hidden';a.after(p)}
- }
- let n=$('ownerDelivery');
- if(!n){
-   const a=$('ownerService')||document.querySelector('.owner-page:last-of-type');
-   if(a){n=document.createElement('div');n.id='ownerDelivery';n.className='owner-page hidden';n.style.display='none';a.after(n)}
- }
- return p||n;
-}
-function buttons(){
- const m=$('ownerNavMenu');
- if(m&&!m.querySelector('[data-area="delivery"]')){
-   const b=document.createElement('button');b.type='button';b.dataset.area='delivery';b.textContent='Delivery';
-   b.onclick=()=>window.showOwnerArea?window.showOwnerArea('delivery'):window.showTab?.('delivery');
-   const s=m.querySelector('[data-area="service"]');s?s.after(b):m.append(b);
- }
- const n=$('ownerMenuItems');
- if(n&&!n.querySelector('[data-owner-delivery]')){
-   const b=document.createElement('button');b.type='button';b.className='owner-tab';b.dataset.ownerDelivery='1';b.textContent='Delivery';
-   b.onclick=()=>window.showTab?.('delivery');
-   const s=[...n.querySelectorAll('button')].find(x=>/service/i.test(x.textContent||''));s?s.after(b):n.append(b);
- }
-}
-function load(done){
- if(window.FusionDelivery){done();return}
- let s=$('fusionDeliveryModule');
- if(!s){s=document.createElement('script');s.id='fusionDeliveryModule';s.src='/delivery-management.js?v=20260828b';s.onload=done;s.onerror=()=>{const h=page();if(h)h.innerHTML='<div class="panel"><h2>Delivery</h2><p>Delivery Management failed to load. Refresh once.</p></div>'};document.body.append(s)}
- else s.addEventListener('load',done,{once:true});
-}
-function show(){
- const h=page();buttons();
- document.querySelectorAll('.ownerPage').forEach(x=>x.classList.add('hidden'));
- document.querySelectorAll('.owner-page').forEach(x=>{x.classList.add('hidden');x.style.display='none'});
- const a=$('page-delivery');if(a)a.classList.remove('hidden');
- const n=$('ownerDelivery');if(n){n.classList.remove('hidden');n.style.display='block'}
- $('ownerNavMenu')?.classList.add('hidden');
- if($('ownerNavCurrent'))$('ownerNavCurrent').textContent='Delivery';
- document.querySelectorAll('#ownerNavMenu button').forEach(b=>b.classList.toggle('active',b.dataset.area==='delivery'));
- document.querySelectorAll('#ownerMenuItems .owner-tab').forEach(b=>b.classList.toggle('active',b.dataset.ownerDelivery==='1'));
- load(()=>{try{window.FusionDelivery?.render(true)}catch(e){if(h)h.innerHTML='<div class="panel"><h2>Delivery</h2><p>'+String(e.message||e)+'</p></div>'}});
- window.__closeOwnerMenu?.();
-}
-function install(){
- page();buttons();
- const a=window.showOwnerArea;if(a&&!a.__ffDelivery){const w=function(v){if(v==='delivery'){show();return}return a.apply(this,arguments)};w.__ffDelivery=1;window.showOwnerArea=w}
- const t=window.showTab;if(t&&!t.__ffDelivery){const w=function(v){if(v==='delivery'){show();return}return t.apply(this,arguments)};w.__ffDelivery=1;window.showTab=w}
- revealOwner();
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
-window.addEventListener('load',()=>{install();revealOwner()},{once:true});
-setTimeout(()=>{install();revealOwner();document.documentElement.classList.remove('ff-booting')},1200);
-setTimeout(revealOwner,3000);
-})();
-</script>
 
 <script src="/orders-delivery-integration.js?v=20260828c"></script>
 <script src="/community-meals-labels.js?v=20260828a"></script>

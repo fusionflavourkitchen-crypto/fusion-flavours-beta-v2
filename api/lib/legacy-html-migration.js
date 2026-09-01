@@ -22,25 +22,11 @@ function stripRetiredOwnerControl(source) {
 }
 
 function ensureCanonicalOwnerShell(source) {
-  let html = String(source || '');
-  const deliveryButton = '<button data-area="delivery" onclick="showOwnerArea(\'delivery\')">Delivery</button>';
-
-  if (!/data-area=["']delivery["']/i.test(html)) {
-    html = html.replace(/(<div\s+id=["']ownerNavMenu["'][^>]*>)([\s\S]*?)(<\/div>)/i, (all, open, body, close) => {
-      if (/data-area=["']service["']/i.test(body)) {
-        body = body.replace(/(<button\b[^>]*data-area=["']service["'][^>]*>)/i, `${deliveryButton}\n$1`);
-      } else {
-        body += `\n${deliveryButton}`;
-      }
-      return open + body + close;
-    });
-  }
-
-  if (!/id=["']page-delivery["']/i.test(html)) {
-    html = html.replace(/(<div\s+id=["']page-service["'][^>]*>)/i, '<div id="page-delivery" class="ownerPage hidden"></div>$1');
-  }
-
-  return html;
+  // Delivery is managed inside Orders. Do not recreate the retired standalone
+  // Delivery owner area while migrating the legacy document.
+  return String(source || '')
+    .replace(/\s*<button\b[^>]*data-area=["']delivery["'][^>]*>[^<]*<\/button>/ig, '')
+    .replace(/\s*<div\b[^>]*id=["']page-delivery["'][^>]*>\s*<\/div>/ig, '');
 }
 
 function ensureDeliveryChefNote(source) {
@@ -74,8 +60,8 @@ function legacyShowTabDiagnostics(source) {
 function migrationFailures(source) {
   const html = String(source || '');
   const failures = [];
-  if (!/data-area=["']delivery["']/i.test(html)) failures.push('delivery-nav');
-  if (!/id=["']page-delivery["']/i.test(html)) failures.push('delivery-page');
+  if (/data-area=["']delivery["']/i.test(html)) failures.push('standalone-delivery-nav');
+  if (/id=["']page-delivery["']/i.test(html)) failures.push('standalone-delivery-page');
   if (/window\.showTab\s*=/i.test(html)) failures.push('legacy-showtab');
   if (/window\.showOwnerArea\s*=/i.test(html)) failures.push('legacy-owner-area');
   if (/window\.showOwnerPage\s*=/i.test(html)) failures.push('legacy-owner-page');
