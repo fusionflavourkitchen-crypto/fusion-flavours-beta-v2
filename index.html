@@ -3022,14 +3022,6 @@ deliverySlotCard=function(s){
   return `<details class="slotCardDrop"><summary><div><b>${esc(s.name)}</b><div class="muted">${String(s.start_time).slice(0,5)}–${String(s.end_time).slice(0,5)} · cutoff ${String(s.booking_cutoff).slice(0,5)}</div></div><span>${s.active?'Active':'Off'} ▾</span></summary><div class="slotCardDropBody"><div class="row"><b>Time window settings</b><label class="switch"><input id="slot_active_${s.id}" type="checkbox" ${s.active?'checked':''}> Active</label></div><div class="logGrid"><label>Name<input id="slot_name_${s.id}" value="${esc(s.name)}"></label><label>Starts<input id="slot_start_${s.id}" type="time" value="${String(s.start_time).slice(0,5)}"></label><label>Ends<input id="slot_end_${s.id}" type="time" value="${String(s.end_time).slice(0,5)}"></label><label>Booking cutoff<input id="slot_cutoff_${s.id}" type="time" value="${String(s.booking_cutoff).slice(0,5)}"></label><label>Max orders<input id="slot_orders_${s.id}" type="number" min="0" value="${Number(s.max_orders||0)}"></label><label>Max portions<input id="slot_portions_${s.id}" type="number" min="0" value="${Number(s.max_portions||0)}"></label></div><div class="split"><button onclick="saveDeliverySlot(${s.id})">Save slot</button><button class="danger" onclick="archiveDeliverySlot(${s.id})">Archive</button></div></div></details>`
 };
 
-/* Make sure Catering is loaded before its page is used. */
-const showTabV36=showTab;
-showTab=function(t){
-  if(t==='catering'&&!ownerData.cateringOrders)loadCateringOrders().then(()=>{});
-  return showTabV36(t)
-};
-
-
 /* ===== v3.7 SERVICE / TARGETS / MENU / CATERING PACKAGES ===== */
 let cateringPackages=[],cateringPackageItems=[];
 
@@ -3360,15 +3352,6 @@ function renderHarnellAdmin(){
   <details class="ownerDrop" open><summary><span>Community orders</span><span>${orders.filter(o=>!['completed','cancelled'].includes(o.status)).length} open ▾</span></summary><div class="ownerDropBody">${orders.map(o=>`<details class="menuDishDrop"><summary><div><b>#${o.id} · ${esc(o.customer_name)}</b><div class="muted">${new Date(o.created_at).toLocaleString()}${o.room_or_unit?' · '+esc(o.room_or_unit):''}</div></div><span>${money(Number(o.total_pence||0)/100)} · ${esc(o.status)} ▾</span></summary><div class="menuDishDropBody">${harnellOrderLines(o.id).map(x=>`<div class="row"><span>${Number(x.quantity||0)}× ${esc(x.item_name)}</span><b>${money(Number(x.unit_price_pence||0)*Number(x.quantity||0)/100)}</b></div>`).join('')}<label>Status<select onchange="updateHarnellOrder(${o.id},this.value)">${['new','accepted','preparing','ready','completed','cancelled'].map(v=>`<option value="${v}" ${o.status===v?'selected':''}>${v}</option>`).join('')}</select></label>${o.notes?`<div class="notice">${esc(o.notes)}</div>`:''}</div></details>`).join('')||'<p class="muted">No Community orders yet.</p>'}</div></details>`;
   decorateOwnerPage('harnell')
 }
-
-/* Harnell is a proper top-level Owner area. */
-const showTabV38=showTab;
-showTab=function(t){
-  if(t==='harnell'){
-    document.querySelectorAll('.ownerPage').forEach(x=>x.classList.add('hidden'));$('page-harnell').classList.remove('hidden');$('ownerNavMenu')?.classList.add('hidden');renderHarnellAdmin();decorateOwnerPage('harnell');return
-  }
-  return showTabV38(t)
-};
 
 /* Welcome Hub settings live under Service. */
 async function renderWelcomeAdmin(){

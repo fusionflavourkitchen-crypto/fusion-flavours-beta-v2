@@ -40,6 +40,7 @@ const migrated = migrateLegacyHtml(html);
 assert.deepStrictEqual(migrationFailures(migrated), [], 'Owner-shell migration must be clean');
 assert(!/data-area=["']delivery["']/i.test(migrated), 'Standalone Delivery navigation must stay retired');
 assert(!/id=["']page-delivery["']/i.test(migrated), 'Standalone Delivery page must stay retired');
+assert(!/const\s+showTabV\w*\s*=\s*showTab\s*;/i.test(html), 'Legacy showTab wrapper reads the router before it loads');
 assert(/ordersDeliveryIntegrationScript/.test(fs.readFileSync(path.join(root, 'api/app.js'), 'utf8')));
 
 const staticReferences = [...html.matchAll(/(?:src|href)=["']([^"'#?{}$]+)["']/gi)]
