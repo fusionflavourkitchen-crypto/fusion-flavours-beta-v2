@@ -93,6 +93,19 @@ async function verifyHealthHandler() {
   assert.strictEqual(statusCode, 200, body);
   assert.strictEqual(result.ok, true, body);
   assert.strictEqual(headers['x-fusion-owner-shell'], 'verified');
+
+  let rendered = '';
+  const pageRes = {
+    setHeader() {},
+    status() { return this; },
+    send(value) { rendered = String(value); return this; },
+    end(value) { if (value) rendered = String(value); return this; }
+  };
+  await handler({ method: 'GET', query: { view: 'delivery' } }, pageRes);
+  const customer = rendered.match(/<section id="customer"[\s\S]*?<section id="legalCustomer"/)?.[0] || '';
+  const retail = rendered.match(/<section id="retailCustomer"[\s\S]*?<section id="cateringCustomer"/)?.[0] || '';
+  assert.strictEqual((customer.match(/class="mainDeliveryWelcomeNote"/g) || []).length, 1, 'Delivery must have one Chef Dan note');
+  assert.strictEqual((retail.match(/class="mainDeliveryWelcomeNote"/g) || []).length, 0, 'Fusion at Home must not contain the Delivery note');
 }
 
 verifyHealthHandler()
