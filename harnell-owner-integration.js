@@ -44,7 +44,7 @@
     throw new Error('Community Meals Owner renderer is unavailable');
   }
 
-  const api = { beforeRender, render };
-  window.FusionHarnellOwner = api;
+  const integration = { beforeRender, render };
+  window.FusionHarnellOwner = integration;
   window.FusionOwnerRouter?.register?.('harnell', { beforeRender, render });
 })();
