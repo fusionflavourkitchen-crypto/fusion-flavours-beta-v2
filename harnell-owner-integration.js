@@ -1,5 +1,5 @@
-/* Fusion Flavours Harnell Owner integration
-   Harnell-specific Owner data is loaded only when the Harnell screen is opened.
+/* Fusion Flavours Community Meals Owner integration
+   Community Meals data is loaded only when its Owner screen is opened.
 */
 (() => {
   'use strict';
@@ -9,14 +9,14 @@
       if (typeof loadHarnellOwnerData === 'function') await loadHarnellOwnerData();
       else if (typeof window.loadHarnellOwnerData === 'function') await window.loadHarnellOwnerData();
     } catch (error) {
-      throw new Error(`Could not load Harnell Owner data: ${error?.message || error}`);
+      throw new Error(`Could not load Community Meals data: ${error?.message || error}`);
     }
   }
 
   async function render() {
     if (typeof window.renderHarnellAdmin === 'function') return window.renderHarnellAdmin();
     try { if (typeof renderHarnellAdmin === 'function') return renderHarnellAdmin(); } catch (_) {}
-    throw new Error('Harnell Owner renderer is unavailable');
+    throw new Error('Community Meals Owner renderer is unavailable');
   }
 
   const api = { beforeRender, render };
