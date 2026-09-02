@@ -60,6 +60,9 @@ assert(/Array\.isArray\(cateringPackages\)/.test(fs.readFileSync(path.join(root,
 assert(/Array\.isArray\(bridged\)/.test(fs.readFileSync(path.join(root, 'catering-policy.js'), 'utf8')), 'Catering policy must reject a same-named DOM element');
 assert(/\['tax', 'Tide Tax'\]/.test(fs.readFileSync(path.join(root, 'owner-router.js'), 'utf8')), 'Business navigation must expose Tide Tax');
 assert(/FusionTideTax/.test(fs.readFileSync(path.join(root, 'tide-tax-integration.js'), 'utf8')), 'Tide tax bridge must be available');
+const ownerDataIntegration = fs.readFileSync(path.join(root, 'owner-data-integration.js'), 'utf8');
+assert(/coreOwnerDataLoader\s*=\s*typeof loadOwnerData/.test(ownerDataIntegration), 'Owner data bridge must capture the canonical loader');
+assert(!/typeof loadOwnerDataV38/.test(ownerDataIntegration), 'Owner data bridge must not depend on a removed versioned loader');
 
 const staticReferences = [...html.matchAll(/(?:src|href)=["']([^"'#?{}$]+)["']/gi)]
   .map(match => match[1])
