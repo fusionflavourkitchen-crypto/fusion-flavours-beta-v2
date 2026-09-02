@@ -73,6 +73,9 @@ assert(!/typeof loadOwnerDataV38/.test(ownerDataIntegration), 'Owner data bridge
 const harnellOwnerIntegration = fs.readFileSync(path.join(root, 'harnell-owner-integration.js'), 'utf8');
 assert(/window\.loadHarnellOwnerData\s*=\s*loadData/.test(harnellOwnerIntegration), 'Community Meals must restore its migrated data loader');
 assert(/window\.harnellOrderLines\s*=\s*orderLines/.test(harnellOwnerIntegration), 'Community Orders must restore its migrated order-lines helper');
+const communityMealsIntegration = fs.readFileSync(path.join(root, 'community-meals-labels.js'), 'utf8');
+assert(/<details class="ownerDrop"><summary><span>\+ Add delivery slot<\/span>/.test(communityMealsIntegration), 'Add Community Meals delivery slot form must be collapsible');
+assert(/<details class="ownerDrop"><summary><span>Delivery slots<\/span>/.test(communityMealsIntegration), 'Community Meals delivery slots list must be collapsible');
 
 const harnellApiCalls = [];
 const harnellSandbox = {
@@ -172,8 +175,7 @@ async function verifyHealthHandler() {
   assert.ok(rendered.includes('+ Add driver'), 'Orders driver management must be present');
   assert.ok(rendered.includes('id="communityDeliverySlot"'), 'Community Meals checkout must include the delivery-slot selector');
   assert.ok(!require('fs').readFileSync(require('path').join(process.cwd(), 'community-meals-labels.js'), 'utf8').includes("$('harnellView')"), 'Community Meals integration must target the live customer page');
-  const communityIntegration = require('fs').readFileSync(require('path').join(process.cwd(), 'community-meals-labels.js'), 'utf8');
-  assert.ok(communityIntegration.includes('customerVisible&&!communityCustomerReady'), 'Community Meals slots must only initialise once while the page is visible');
+  assert.ok(communityMealsIntegration.includes('customerVisible&&!communityCustomerReady'), 'Community Meals slots must only initialise once while the page is visible');
   assert.ok(rendered.includes('<details class="retailIngredients"><summary>Product details &amp; ingredients</summary>'), 'Fusion at Home product information must be collapsed by default');
   assert.ok(!rendered.includes('<b>Responsible business:</b> Fusion Flavours, 44 Harnall Lane West'), 'Fusion at Home product cards must not show the business address');
 }
