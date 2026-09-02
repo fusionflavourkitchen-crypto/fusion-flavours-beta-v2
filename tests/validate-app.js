@@ -106,8 +106,9 @@ async function verifyHealthHandler() {
   const retail = rendered.match(/<section id="retailCustomer"[\s\S]*?<section id="cateringCustomer"/)?.[0] || '';
   assert.strictEqual((customer.match(/class="mainDeliveryWelcomeNote"/g) || []).length, 1, 'Delivery must have one Chef Dan note');
   assert.strictEqual((retail.match(/class="mainDeliveryWelcomeNote"/g) || []).length, 0, 'Fusion at Home must not contain the Delivery note');
-  assert.ok(rendered.includes('community-meals-labels.js?v=20260902-community-slots-1'), 'Community Meals slot integration must be injected');
-  assert.ok(rendered.indexOf('fusion-runtime.js?v=20260902-community-slots-1') < rendered.lastIndexOf('community-meals-labels.js?v=20260902-community-slots-1'), 'Community Meals slot integration must load after the final runtime');
+  assert.ok(rendered.includes('data-fusion-inline="community-meals-labels"'), 'Community Meals slot integration must be embedded in the live page');
+  assert.ok(rendered.indexOf('fusion-runtime.js?v=20260902-community-slots-inline-1') < rendered.lastIndexOf('data-fusion-inline="community-meals-labels"'), 'Community Meals slot integration must load after the final runtime');
+  assert.ok(rendered.includes('id="communityDeliverySlot"'), 'Community Meals checkout must include the delivery-slot selector');
   assert.ok(!require('fs').readFileSync(require('path').join(process.cwd(), 'community-meals-labels.js'), 'utf8').includes("$('harnellView')"), 'Community Meals integration must target the live customer page');
 }
 
