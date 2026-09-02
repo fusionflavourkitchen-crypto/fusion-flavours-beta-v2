@@ -639,7 +639,7 @@ body{transition:opacity .16s ease}
   <div id="harnellStatus" class="notice"></div>
   <div id="harnellMenu" class="harnellMenuGrid"></div>
   <div class="harnellBasket panel">
-    <h2>Your Harnell order</h2>
+    <h2>Your Community Meals order</h2>
     <div id="harnellBasketLines"></div>
     <div class="row"><b>Total</b><b id="harnellBasketTotal">£0.00</b></div>
     <input id="harnellName" placeholder="Your name" autocomplete="name">
@@ -745,7 +745,7 @@ body{transition:opacity .16s ease}
 <button data-area="kitchen" onclick="showOwnerArea('kitchen')">Kitchen</button>
 <button data-area="business" onclick="showOwnerArea('business')">Business</button>
 <button data-area="catering" onclick="showOwnerArea('catering')">Catering</button>
-<button data-area="harnell" onclick="showOwnerArea('harnell')">Harnell</button>
+<button data-area="harnell" onclick="showOwnerArea('harnell')">Community Meals</button>
 <button data-area="fusionhome" onclick="showOwnerArea('fusionhome')">Fusion at Home</button>
           <button data-area="service" onclick="showOwnerArea('service')">Service</button></div>
 </div>
@@ -3247,7 +3247,11 @@ async function renderWelcomeHub(){
   const links=welcomeLinks.filter(x=>x.route!=='harnell'||s.harnell_enabled===true);
   $('welcomeHubCards').innerHTML=links.map(x=>{
     const safeRoute=String(x.route||'').toLowerCase().replace(/[^a-z0-9_-]/g,'-');
-    return `<a class="welcomeRouteCard route-${esc(safeRoute)}" href="${esc(routeUrl(x.route))}"><div class="welcomeRouteIcon">${esc(x.icon||'🔥')}</div><h2>${esc(x.title)}</h2><p>${esc(x.subtitle||'')}</p></a>`
+    const isCommunity=String(x.route||'').toLowerCase()==='harnell';
+    const title=isCommunity?'Community Meals':x.title;
+    const subtitle=isCommunity?'Affordable, filling meals for the whole community':(x.subtitle||'');
+    const icon=isCommunity?'🤝':(x.icon||'🔥');
+    return `<a class="welcomeRouteCard route-${esc(safeRoute)}" href="${esc(routeUrl(x.route))}"><div class="welcomeRouteIcon">${esc(icon)}</div><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></a>`
   }).join('')||'<div class="notice">Customer options are being updated.</div>';
   if($('welcomeFacebook'))$('welcomeFacebook').href=s.facebook_url||'https://www.facebook.com/share/1B1aC3T4Yb/';
   if($('welcomeTikTok'))$('welcomeTikTok').href=s.tiktok_url||'https://www.tiktok.com/@fusionflavourkitchen';
@@ -3306,7 +3310,7 @@ routeCustomerView=function(){
   if(v==='delivery'){$('customer').classList.remove('hidden');renderCustomer()}
   else if(v==='fusionhome'){$('retailCustomer').classList.remove('hidden');return loadRetailShop().then(()=>window.scrollTo(0,0))}
   else if(v==='catering'){$('cateringCustomer').classList.remove('hidden');renderCateringCustomer()}
-  else if(v==='harnell'){$('harnellCustomer').classList.remove('hidden');loadHarnellPublic().then(renderHarnellCustomer).catch(e=>alert('Could not load Harnell menu: '+e.message))}
+  else if(v==='harnell'){$('harnellCustomer').classList.remove('hidden');loadHarnellPublic().then(renderHarnellCustomer).catch(e=>alert('Could not load Community Meals menu: '+e.message))}
   else if(v==='legal'){$('legalCustomer').classList.remove('hidden');renderLegalCustomer(q.get('page')||'terms')}
   else{$('welcomeHub').classList.remove('hidden');return renderWelcomeHub()}
 };
@@ -3339,7 +3343,7 @@ function harnellOrderLines(id){return (ownerData.harnellOrderItems||[]).filter(x
 window.saveHarnellSettings=async()=>{
   try{
     const body={harnell_enabled:$('har_enabled').checked,harnell_title:$('har_title').value.trim(),harnell_subtitle:$('har_subtitle').value.trim(),harnell_cutoff_time:$('har_cutoff').value||'15:00'};
-    await api('/rest/v1/settings?id=eq.1',{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(body)});ownerData.settings={...ownerData.settings,...body};state.settings=ownerData.settings;renderHarnellAdmin();alert('Harnell settings saved.')
+    await api('/rest/v1/settings?id=eq.1',{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(body)});ownerData.settings={...ownerData.settings,...body};state.settings=ownerData.settings;renderHarnellAdmin();alert('Community Meals settings saved.')
   }catch(e){alert(e.message)}
 }
 window.addHarnellDish=async()=>{
@@ -3350,14 +3354,14 @@ window.addHarnellDish=async()=>{
   }catch(e){alert(e.message)}
 }
 window.saveHarnellDish=async id=>{try{await api('/rest/v1/harnell_menu_items?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({resident_price_pence:Math.round(Number($('har_price_'+id).value||0)*100),active:$('har_active_'+id).checked,updated_at:new Date().toISOString()})});await loadHarnellOwnerData();renderHarnellAdmin()}catch(e){alert(e.message)}}
-window.removeHarnellDish=async id=>{if(!confirm('Remove this dish from the Harnell menu?'))return;try{await api('/rest/v1/harnell_menu_items?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=minimal'}});await loadHarnellOwnerData();renderHarnellAdmin()}catch(e){alert(e.message)}}
+window.removeHarnellDish=async id=>{if(!confirm('Remove this dish from the Community Meals menu?'))return;try{await api('/rest/v1/harnell_menu_items?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=minimal'}});await loadHarnellOwnerData();renderHarnellAdmin()}catch(e){alert(e.message)}}
 window.updateHarnellOrder=async(id,status)=>{try{await api('/rest/v1/harnell_orders?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status,updated_at:new Date().toISOString()})});await loadHarnellOwnerData();renderHarnellAdmin()}catch(e){alert(e.message)}}
 
 function renderHarnellAdmin(){
   const p=$('page-harnell');if(!p)return;const s=ownerData.settings||{},menu=ownerData.harnellMenu||[],orders=ownerData.harnellOrders||[];
   p.innerHTML=`<h2>Community Meals</h2>
   <details class="ownerDrop" open><summary><span>Community service</span><span>${s.harnell_enabled?'Live':'Off'} ▾</span></summary><div class="ownerDropBody"><label class="switch"><input id="har_enabled" type="checkbox" ${s.harnell_enabled?'checked':''}> Show Community Meals ordering</label><label>Page title<input id="har_title" value="${esc(s.harnell_title||'Community Meals')}"></label><label>Short message<textarea id="har_subtitle">${esc(s.harnell_subtitle||'Affordable, filling meals for the community')}</textarea></label><label>Order cutoff<input id="har_cutoff" type="time" value="${String(s.harnell_cutoff_time||'15:00').slice(0,5)}"></label><button style="width:100%" onclick="saveHarnellSettings()">Save Community Meals settings</button></div></details>
-  <details class="ownerDrop"><summary><span>Community menu</span><span>${menu.filter(x=>x.active).length} dishes ▾</span></summary><div class="ownerDropBody"><div class="logGrid"><label>Add existing dish<select id="har_add_item"><option value="">Choose dish…</option>${ownerData.items.filter(i=>i.active!==false&&!menu.some(m=>Number(m.item_id)===Number(i.id))).map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join('')}</select></label><label>Community price £<input id="har_add_price" type="number" min="0" step=".01"></label></div><button style="width:100%" onclick="addHarnellDish()">+ Add to Harnell menu</button>${menu.map(x=>`<details class="menuDishDrop"><summary><div><b>${esc(x.items?.name||'Dish')}</b><div class="muted">${money(Number(x.resident_price_pence||0)/100)} · ${x.active?'Available':'Hidden'}</div></div><span>▾</span></summary><div class="menuDishDropBody"><label>Community price £<input id="har_price_${x.id}" type="number" min="0" step=".01" value="${Number(x.resident_price_pence||0)/100}"></label><label class="switch"><input id="har_active_${x.id}" type="checkbox" ${x.active?'checked':''}> Available to community customers</label><div class="split"><button onclick="saveHarnellDish(${x.id})">Save</button><button class="danger" onclick="removeHarnellDish(${x.id})">Remove</button></div></div></details>`).join('')||'<p class="muted">No Community Meals dishes yet.</p>'}</div></details>
+  <details class="ownerDrop"><summary><span>Community menu</span><span>${menu.filter(x=>x.active).length} dishes ▾</span></summary><div class="ownerDropBody"><div class="logGrid"><label>Add existing dish<select id="har_add_item"><option value="">Choose dish…</option>${ownerData.items.filter(i=>i.active!==false&&!menu.some(m=>Number(m.item_id)===Number(i.id))).map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join('')}</select></label><label>Community price £<input id="har_add_price" type="number" min="0" step=".01"></label></div><button style="width:100%" onclick="addHarnellDish()">+ Add to Community Meals menu</button>${menu.map(x=>`<details class="menuDishDrop"><summary><div><b>${esc(x.items?.name||'Dish')}</b><div class="muted">${money(Number(x.resident_price_pence||0)/100)} · ${x.active?'Available':'Hidden'}</div></div><span>▾</span></summary><div class="menuDishDropBody"><label>Community price £<input id="har_price_${x.id}" type="number" min="0" step=".01" value="${Number(x.resident_price_pence||0)/100}"></label><label class="switch"><input id="har_active_${x.id}" type="checkbox" ${x.active?'checked':''}> Available to community customers</label><div class="split"><button onclick="saveHarnellDish(${x.id})">Save</button><button class="danger" onclick="removeHarnellDish(${x.id})">Remove</button></div></div></details>`).join('')||'<p class="muted">No Community Meals dishes yet.</p>'}</div></details>
   <details class="ownerDrop" open><summary><span>Community orders</span><span>${orders.filter(o=>!['completed','cancelled'].includes(o.status)).length} open ▾</span></summary><div class="ownerDropBody">${orders.map(o=>`<details class="menuDishDrop"><summary><div><b>#${o.id} · ${esc(o.customer_name)}</b><div class="muted">${new Date(o.created_at).toLocaleString()}${o.room_or_unit?' · '+esc(o.room_or_unit):''}</div></div><span>${money(Number(o.total_pence||0)/100)} · ${esc(o.status)} ▾</span></summary><div class="menuDishDropBody">${harnellOrderLines(o.id).map(x=>`<div class="row"><span>${Number(x.quantity||0)}× ${esc(x.item_name)}</span><b>${money(Number(x.unit_price_pence||0)*Number(x.quantity||0)/100)}</b></div>`).join('')}<label>Status<select onchange="updateHarnellOrder(${o.id},this.value)">${['new','accepted','preparing','ready','completed','cancelled'].map(v=>`<option value="${v}" ${o.status===v?'selected':''}>${v}</option>`).join('')}</select></label>${o.notes?`<div class="notice">${esc(o.notes)}</div>`:''}</div></details>`).join('')||'<p class="muted">No Community orders yet.</p>'}</div></details>`;
   decorateOwnerPage('harnell')
 }
@@ -3389,13 +3393,13 @@ const renderPrepV38=renderPrep;
 renderPrep=function(){
   if(prepMode!=='harnell'){
     const r=renderPrepV38();
-    const tabs=$('page-prep')?.querySelector('.prepModeTabs');if(tabs&&!tabs.querySelector('[data-harnell-prep]'))tabs.insertAdjacentHTML('beforeend',`<button data-harnell-prep onclick="setPrepMode('harnell')">Harnell</button>`);
+    const tabs=$('page-prep')?.querySelector('.prepModeTabs');if(tabs&&!tabs.querySelector('[data-harnell-prep]'))tabs.insertAdjacentHTML('beforeend',`<button data-harnell-prep onclick="setPrepMode('harnell')">Community Meals</button>`);
     return r
   }
   const p=$('page-prep');if(!p)return;const today=londonDateKey(),orders=(ownerData.harnellOrders||[]).filter(o=>londonDateKey(new Date(o.created_at))===today&&!['cancelled','completed'].includes(o.status));
   const flat=[];orders.forEach(o=>harnellOrderLines(o.id).forEach(x=>flat.push({item_id:x.item_id,quantity:Number(x.quantity||0),item_name:x.item_name})));
   const req=prepRequirementsFromItems(flat),tot={};flat.forEach(x=>tot[x.item_name]=(tot[x.item_name]||0)+Number(x.quantity||0));
-  p.innerHTML=`<h2>Prep</h2><div class="prepModeTabs"><button onclick="setPrepMode('takeaway')">Takeaway</button><button onclick="setPrepMode('catering')">Catering</button><button class="active" onclick="setPrepMode('harnell')">Harnell</button></div><div class="notice"><b>Harnell prep</b> · Today's open resident orders only.</div><div class="panel"><h2>Portions to prepare</h2>${Object.entries(tot).map(([n,q])=>`<div class="prepRow"><b>${esc(n)}</b><div class="prepQty">× ${q}</div></div>`).join('')||'<p class="muted">No Harnell prep required.</p>'}</div><div class="panel" style="margin-top:12px"><h2>Recipe ingredient requirements</h2>${Object.values(req).map(x=>`<div class="prepRow"><b>${esc(x.name)}</b><div class="prepQty">${Number(x.qty.toFixed(3))} ${esc(x.unit)}</div></div>`).join('')||'<p class="muted">No linked recipe requirements.</p>'}</div>`;decorateOwnerPage('prep')
+  p.innerHTML=`<h2>Prep</h2><div class="prepModeTabs"><button onclick="setPrepMode('takeaway')">Takeaway</button><button onclick="setPrepMode('catering')">Catering</button><button class="active" onclick="setPrepMode('harnell')">Community Meals</button></div><div class="notice"><b>Community Meals prep</b> · Today's open community orders only.</div><div class="panel"><h2>Portions to prepare</h2>${Object.entries(tot).map(([n,q])=>`<div class="prepRow"><b>${esc(n)}</b><div class="prepQty">× ${q}</div></div>`).join('')||'<p class="muted">No Community Meals prep required.</p>'}</div><div class="panel" style="margin-top:12px"><h2>Recipe ingredient requirements</h2>${Object.values(req).map(x=>`<div class="prepRow"><b>${esc(x.name)}</b><div class="prepQty">${Number(x.qty.toFixed(3))} ${esc(x.unit)}</div></div>`).join('')||'<p class="muted">No linked recipe requirements.</p>'}</div>`;decorateOwnerPage('prep')
 };
 
 /* Completed Harnell orders contribute to the business P&L. */
@@ -3476,7 +3480,7 @@ routeCustomerView=function(){
     renderCateringCustomer();
   }else if(v==='harnell'){
     $('harnellCustomer')?.classList.remove('hidden');
-    loadHarnellPublic().then(renderHarnellCustomer).catch(e=>alert('Could not load Harnell menu: '+e.message));
+    loadHarnellPublic().then(renderHarnellCustomer).catch(e=>alert('Could not load Community Meals menu: '+e.message));
   }else if(v==='legal'){
     $('legalCustomer')?.classList.remove('hidden');
     renderLegalCustomer(q.get('page')||'terms');
@@ -3722,7 +3726,7 @@ window.saveHarnellSettings=async()=>{
       harnell_pay_later:$('har_pay_later')?.checked===true
     };
     await api('/rest/v1/settings?id=eq.1',{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(body)});
-    ownerData.settings={...ownerData.settings,...body};state.settings=ownerData.settings;renderHarnellAdmin();alert('Harnell settings saved.')
+    ownerData.settings={...ownerData.settings,...body};state.settings=ownerData.settings;renderHarnellAdmin();alert('Community Meals settings saved.')
   }catch(e){alert(e.message)}
 };
 
@@ -3832,7 +3836,7 @@ window.submitHarnellOrder=async()=>{
     harnellBasket=[];
     sessionStorage.removeItem('ffHarnellOrderKey');
     sessionStorage.removeItem('ffPendingHarnellOrder');
-    setTimeout(()=>alert('✅ Payment received!\n\nYour Harnell House order has been placed.'),350);
+    setTimeout(()=>alert('✅ Payment received!\n\nYour Community Meals order has been placed.'),350);
   }else if(p==='harnell_cancelled'){
     setTimeout(()=>alert('Payment was cancelled.\n\nYour card has not been charged.'),350);
   }
