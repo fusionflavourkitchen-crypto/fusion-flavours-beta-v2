@@ -112,6 +112,8 @@ async function verifyHealthHandler() {
   assert.ok(!require('fs').readFileSync(require('path').join(process.cwd(), 'community-meals-labels.js'), 'utf8').includes("$('harnellView')"), 'Community Meals integration must target the live customer page');
   const communityIntegration = require('fs').readFileSync(require('path').join(process.cwd(), 'community-meals-labels.js'), 'utf8');
   assert.ok(communityIntegration.includes('customerVisible&&!communityCustomerReady'), 'Community Meals slots must only initialise once while the page is visible');
+  assert.ok(rendered.includes('<details class="retailIngredients"><summary>Product details &amp; ingredients</summary>'), 'Fusion at Home product information must be collapsed by default');
+  assert.ok(!rendered.includes('<b>Responsible business:</b> Fusion Flavours, 44 Harnall Lane West'), 'Fusion at Home product cards must not show the business address');
 }
 
 verifyHealthHandler()
