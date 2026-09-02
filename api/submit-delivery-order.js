@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
     const statusRows = await statusResponse.json().catch(() => []);
     if (!statusResponse.ok) throw new Error('Delivery availability could not be checked.');
     if (statusRows?.[0]?.preorder_open !== true) {
-      return send(res, 423, { message: 'Delivery orders are currently closed.' });
+      return send(res, 423, { message: 'Delivery orders are closed today, please see open times above.' });
     }
 
     const orderResponse = await fetch(`${SUPA_URL}/rest/v1/rpc/submit_delivery_order`, {
