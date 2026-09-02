@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260902-community-slots-stable-1';
+const BUILD = '20260902-retail-product-details-1';
 
 function inlineScript(fileName) {
   return fs.readFileSync(path.join(process.cwd(), fileName), 'utf8').replace(/<\/script/gi, '<\\/script');
