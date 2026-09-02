@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260902-community-orders-fix-5';
+const BUILD = '20260902-community-slots-dropdowns-6';
 
 const RUNTIME_SCRIPTS = [
   'owner-router.js',
