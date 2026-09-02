@@ -70,6 +70,25 @@ assert(fs.existsSync(path.join(root, 'api/submit-delivery-order.js')), 'Server-s
 const ownerDataIntegration = fs.readFileSync(path.join(root, 'owner-data-integration.js'), 'utf8');
 assert(/coreOwnerDataLoader\s*=\s*typeof loadOwnerData/.test(ownerDataIntegration), 'Owner data bridge must capture the canonical loader');
 assert(!/typeof loadOwnerDataV38/.test(ownerDataIntegration), 'Owner data bridge must not depend on a removed versioned loader');
+const harnellOwnerIntegration = fs.readFileSync(path.join(root, 'harnell-owner-integration.js'), 'utf8');
+assert(/window\.loadHarnellOwnerData\s*=\s*loadData/.test(harnellOwnerIntegration), 'Community Meals must restore its migrated data loader');
+assert(/window\.harnellOrderLines\s*=\s*orderLines/.test(harnellOwnerIntegration), 'Community Orders must restore its migrated order-lines helper');
+
+const harnellSandbox = {
+  window: { ownerData: { harnellOrderItems: [
+    { id: 1, harnell_order_id: 41 },
+    { id: 2, harnell_order_id: 42 },
+    { id: 3, harnell_order_id: '41' }
+  ] } },
+  api: async () => []
+};
+harnellSandbox.window.window = harnellSandbox.window;
+vm.runInNewContext(harnellOwnerIntegration, harnellSandbox, { filename: 'harnell-owner-integration.js' });
+assert.deepStrictEqual(
+  Array.from(harnellSandbox.window.harnellOrderLines(41), item => item.id),
+  [1, 3],
+  'Community Orders must match all lines belonging to an order'
+);
 
 const staticReferences = [...html.matchAll(/(?:src|href)=["']([^"'#?{}$]+)["']/gi)]
   .map(match => match[1])
