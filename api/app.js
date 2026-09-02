@@ -2,7 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260902-community-slots-1';
+const BUILD = '20260902-community-slots-inline-1';
+
+function inlineScript(fileName) {
+  return fs.readFileSync(path.join(process.cwd(), fileName), 'utf8').replace(/<\/script/gi, '<\\/script');
+}
 
 const DELIVERY_CHEF_NOTE = `<div class="mainDeliveryWelcomeNote" data-design="chef-note-v4" style="position:relative;background:linear-gradient(180deg,#1a1a1a 0%,#121212 100%);color:#f8f2ea;border:2px solid #f26b21;border-radius:18px;padding:26px 24px 24px;margin:14px 0 22px;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.04);overflow:hidden">
   <div aria-hidden="true" style="position:absolute;left:12px;top:12px;width:34px;height:34px;border-left:2px solid #f26b21;border-top:2px solid #f26b21;border-radius:10px 0 0 0;opacity:.9"></div>
@@ -68,8 +72,8 @@ module.exports = async function handler(req, res) {
       `<script src="/business-ui-integration.js?v=${BUILD}"></script>`,
       `<script src="/business-actions-integration.js?v=${BUILD}"></script>`,
       `<script src="/fusion-runtime.js?v=${BUILD}"></script>`,
-      `<script src="/community-meals-labels.js?v=${BUILD}"></script>`,
-      `<script src="/community-page-intro.js?v=${BUILD}"></script>`
+      `<script data-fusion-inline="community-meals-labels">${inlineScript('community-meals-labels.js')}</script>`,
+      `<script data-fusion-inline="community-page-intro">${inlineScript('community-page-intro.js')}</script>`
     ].join('\n');
 
     html = html.replace(/<\/body>\s*<\/html>\s*$/i, `${bootstrap}\n<!-- fusion-build:${BUILD} -->\n</body></html>`);
