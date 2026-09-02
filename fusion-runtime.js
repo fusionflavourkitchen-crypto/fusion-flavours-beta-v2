@@ -132,7 +132,10 @@
   }
 
   function installCateringBridge() {
-    window.__fusionGetCateringPackages = () => { try { return window.cateringPackages || []; } catch (_) { return []; } };
+    window.__fusionGetCateringPackages = () => {
+      try { return typeof cateringPackages !== 'undefined' && Array.isArray(cateringPackages) ? cateringPackages : []; }
+      catch (_) { return []; }
+    };
     window.__fusionGetOwnerData = () => { try { return window.ownerData || null; } catch (_) { return null; } };
     window.__fusionCateringOrderFoodCost = order => { try { return window.cateringOrderFoodCost?.(order) || 0; } catch (_) { return 0; } };
     window.__fusionCateringSuggestedTotal = () => { try { return window.cateringSuggestedTotal?.() || 0; } catch (_) { return 0; } };
