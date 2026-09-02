@@ -26,6 +26,7 @@ const RUNTIME_SCRIPTS = [
   'catering-owner-integration.js',
   'business-ui-integration.js',
   'business-actions-integration.js',
+  'tide-tax-integration.js',
   'fusion-runtime.js',
   'community-meals-labels.js',
   'community-page-intro.js'

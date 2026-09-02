@@ -9,7 +9,7 @@
     dashboard: { label: 'Dashboard', tabs: [['dash', 'Dashboard']] },
     orders: { label: 'Orders', tabs: [['orders', 'Delivery Orders'], ['harnellorders', 'Community Orders'], ['retailorders', 'Postal Orders']] },
     kitchen: { label: 'Kitchen', tabs: [['menu', 'Menu'], ['stock', 'Stock'], ['costings', 'Costings'], ['cookbook', 'Cookbook'], ['prep', 'Prep']] },
-    business: { label: 'Business', tabs: [['performance', 'P&L / Performance'], ['targets', 'Targets'], ['dailyadmin', 'Daily Admin'], ['costs', 'Costs & Overheads'], ['banking', 'Banking']] },
+    business: { label: 'Business', tabs: [['performance', 'P&L / Performance'], ['targets', 'Targets'], ['dailyadmin', 'Daily Admin'], ['costs', 'Costs & Overheads'], ['banking', 'Banking'], ['tax', 'Tide Tax']] },
     catering: { label: 'Catering', tabs: [['catering', 'Catering']] },
     harnell: { label: 'Community Meals', tabs: [['harnell', 'Community Meals']] },
     fusionhome: { label: 'Fusion at Home', tabs: [['fusionhome', 'Fusion at Home']] },
@@ -20,7 +20,7 @@
   const RENDERERS = {
     dash: 'renderDashboard', orders: 'renderOrders', harnellorders: 'renderHarnellOrders', retailorders: 'renderRetailOrders',
     menu: 'renderMenuAdmin', stock: 'renderStock', costings: 'renderCostings', cookbook: 'renderCookbook', prep: 'renderPrep',
-    performance: 'renderPerformance', targets: 'renderTargets', dailyadmin: 'renderDailyAdmin', costs: 'renderCostsOverheads', banking: 'renderBanking',
+    performance: 'renderPerformance', targets: 'renderTargets', dailyadmin: 'renderDailyAdmin', costs: 'renderCostsOverheads', banking: 'renderBanking', tax: 'FusionTideTax.render',
     catering: 'renderCateringAdmin', harnell: 'renderHarnellAdmin', fusionhome: 'renderFusionAtHome', delivery: 'refreshDeliveryManagement', service: 'renderService'
   };
 

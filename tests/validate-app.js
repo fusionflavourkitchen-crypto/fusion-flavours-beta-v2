@@ -33,7 +33,7 @@ const runtimeScripts = [
   'kitchen-integration', 'kitchen-actions-integration', 'prep-integration',
   'service-integration', 'catering-owner-integration', 'business-ui-integration',
   'business-actions-integration', 'fusion-runtime', 'community-meals-labels',
-  'community-page-intro'
+  'community-page-intro', 'tide-tax-integration'
 ];
 
 for (const file of javascriptFiles) {
@@ -58,6 +58,8 @@ assert(!/const\s+showTabV\w*\s*=\s*showTab\s*;/i.test(html), 'Legacy showTab wra
 assert(/ordersDeliveryIntegrationScript/.test(fs.readFileSync(path.join(root, 'api/app.js'), 'utf8')));
 assert(/Array\.isArray\(cateringPackages\)/.test(fs.readFileSync(path.join(root, 'fusion-runtime.js'), 'utf8')), 'Catering package bridge must read the global package array, not the same-named DOM element');
 assert(/Array\.isArray\(bridged\)/.test(fs.readFileSync(path.join(root, 'catering-policy.js'), 'utf8')), 'Catering policy must reject a same-named DOM element');
+assert(/\['tax', 'Tide Tax'\]/.test(fs.readFileSync(path.join(root, 'owner-router.js'), 'utf8')), 'Business navigation must expose Tide Tax');
+assert(/FusionTideTax/.test(fs.readFileSync(path.join(root, 'tide-tax-integration.js'), 'utf8')), 'Tide tax bridge must be available');
 
 const staticReferences = [...html.matchAll(/(?:src|href)=["']([^"'#?{}$]+)["']/gi)]
   .map(match => match[1])
