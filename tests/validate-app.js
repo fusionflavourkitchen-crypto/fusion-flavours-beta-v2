@@ -27,7 +27,7 @@ const javascriptFiles = [
 
 const runtimeScripts = [
   'owner-router', 'legacy-state-bridge', 'owner-data-integration', 'harnell-public',
-  'harnell-owner-integration', 'main-delivery-cleanup', 'catering-policy',
+  'harnell-owner-integration', 'main-delivery-cleanup', 'delivery-open-integration', 'catering-policy',
   'delivery-management', 'business-finance-core', 'finance-integration', 'pnl-reporting',
   'financial-period-integration', 'orders-integration', 'orders-delivery-integration',
   'kitchen-integration', 'kitchen-actions-integration', 'prep-integration',
@@ -62,6 +62,11 @@ assert(/Array\.isArray\(cateringPackages\)/.test(fs.readFileSync(path.join(root,
 assert(/Array\.isArray\(bridged\)/.test(fs.readFileSync(path.join(root, 'catering-policy.js'), 'utf8')), 'Catering policy must reject a same-named DOM element');
 assert(/\['tax', 'Tide Tax'\]/.test(fs.readFileSync(path.join(root, 'owner-router.js'), 'utf8')), 'Business navigation must expose Tide Tax');
 assert(/FusionTideTax/.test(fs.readFileSync(path.join(root, 'tide-tax-integration.js'), 'utf8')), 'Tide tax bridge must be available');
+const deliveryOpen = fs.readFileSync(path.join(root, 'delivery-open-integration.js'), 'utf8');
+assert(/preorder_open/.test(deliveryOpen), 'Delivery open control must use the public service-state field');
+assert(/setDeliveryOrdersOpen/.test(deliveryOpen), 'Owner Dashboard must expose the delivery open/closed action');
+assert(/\/api\/submit-delivery-order/.test(html), 'Main Delivery checkout must pass through the server-side open/closed gate');
+assert(fs.existsSync(path.join(root, 'api/submit-delivery-order.js')), 'Server-side delivery order gate must exist');
 const ownerDataIntegration = fs.readFileSync(path.join(root, 'owner-data-integration.js'), 'utf8');
 assert(/coreOwnerDataLoader\s*=\s*typeof loadOwnerData/.test(ownerDataIntegration), 'Owner data bridge must capture the canonical loader');
 assert(!/typeof loadOwnerDataV38/.test(ownerDataIntegration), 'Owner data bridge must not depend on a removed versioned loader');
@@ -148,7 +153,33 @@ async function verifyHealthHandler() {
   assert.ok(!rendered.includes('<b>Responsible business:</b> Fusion Flavours, 44 Harnall Lane West'), 'Fusion at Home product cards must not show the business address');
 }
 
-verifyHealthHandler()
+async function verifyClosedDeliveryGate() {
+  const handler = require('../api/submit-delivery-order');
+  const originalFetch = global.fetch;
+  let orderRpcCalled = false;
+  global.fetch = async url => {
+    if (String(url).includes('/rest/v1/settings')) {
+      return { ok:true, json:async()=>[{ preorder_open:false }] };
+    }
+    orderRpcCalled = true;
+    throw new Error('Order RPC must not be called while delivery is closed');
+  };
+  let statusCode = 200;
+  let body = '';
+  const res = {
+    setHeader() {},
+    status(code) { statusCode = code; return this; },
+    send(value) { body = String(value); return this; }
+  };
+  try {
+    await handler({ method:'POST', body:{ p_customer_name:'Blocked test' } }, res);
+  } finally { global.fetch = originalFetch; }
+  assert.strictEqual(statusCode, 423, body);
+  assert.strictEqual(JSON.parse(body).message, 'Delivery orders are currently closed.');
+  assert.strictEqual(orderRpcCalled, false, 'Closed delivery must stop before the order RPC');
+}
+
+Promise.all([verifyHealthHandler(), verifyClosedDeliveryGate()])
   .then(() => console.log(`Validated ${javascriptFiles.length} JavaScript files, ${inlineScripts.length} inline scripts and owner health.`))
   .catch(error => {
     console.error(error);
