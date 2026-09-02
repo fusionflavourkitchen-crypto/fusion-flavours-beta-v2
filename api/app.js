@@ -2,10 +2,45 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260902-orders-delivery-inline-1';
+const BUILD = '20260902-complete-runtime-restore-1';
+
+const RUNTIME_SCRIPTS = [
+  'owner-router.js',
+  'legacy-state-bridge.js',
+  'owner-data-integration.js',
+  'harnell-public.js',
+  'harnell-owner-integration.js',
+  'main-delivery-cleanup.js',
+  'catering-policy.js',
+  'delivery-management.js',
+  'business-finance-core.js',
+  'finance-integration.js',
+  'pnl-reporting.js',
+  'financial-period-integration.js',
+  'orders-integration.js',
+  'orders-delivery-integration.js',
+  'kitchen-integration.js',
+  'kitchen-actions-integration.js',
+  'prep-integration.js',
+  'service-integration.js',
+  'catering-owner-integration.js',
+  'business-ui-integration.js',
+  'business-actions-integration.js',
+  'fusion-runtime.js',
+  'community-meals-labels.js',
+  'community-page-intro.js'
+];
 
 function inlineScript(fileName) {
   return fs.readFileSync(path.join(process.cwd(), fileName), 'utf8').replace(/<\/script/gi, '<\\/script');
+}
+
+function inlineStyle(fileName) {
+  return fs.readFileSync(path.join(process.cwd(), fileName), 'utf8').replace(/<\/style/gi, '<\\/style');
+}
+
+function scriptMarker(fileName) {
+  return fileName.replace(/\.js$/i, '');
 }
 
 const DELIVERY_CHEF_NOTE = `<div class="mainDeliveryWelcomeNote" data-design="chef-note-v4" style="position:relative;background:linear-gradient(180deg,#1a1a1a 0%,#121212 100%);color:#f8f2ea;border:2px solid #f26b21;border-radius:18px;padding:26px 24px 24px;margin:14px 0 22px;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.18),inset 0 0 0 1px rgba(255,255,255,.04);overflow:hidden">
@@ -48,34 +83,15 @@ module.exports = async function handler(req, res) {
       `$1\n${DELIVERY_CHEF_NOTE}`
     );
 
-    html = html.replace(/<\/head>/i, `<link rel="stylesheet" href="/app-core.css?v=${BUILD}">\n</head>`);
+    // Vercel serves this application through one function. Keep the complete runtime in
+    // that response so customer and Owner tools cannot disappear behind static-file 404s.
+    html = html
+      .replace(/<script\s+src=["']\/(?:orders-delivery-integration|community-meals-labels)\.js[^"']*["']\s*><\/script>\s*/gi, '')
+      .replace(/<\/head>/i, `<style data-fusion-inline="app-core">${inlineStyle('app-core.css')}</style>\n</head>`);
 
     const bootstrap = [
       `<script>window.__FUSION_BOOT_MODE__=${JSON.stringify(mode)};</script>`,
-      `<script data-fusion-inline="owner-router">${inlineScript('owner-router.js')}</script>`,
-      `<script src="/legacy-state-bridge.js?v=${BUILD}"></script>`,
-      `<script src="/owner-data-integration.js?v=${BUILD}"></script>`,
-      `<script src="/harnell-public.js?v=${BUILD}"></script>`,
-      `<script src="/harnell-owner-integration.js?v=${BUILD}"></script>`,
-      `<script src="/main-delivery-cleanup.js?v=${BUILD}"></script>`,
-      `<script src="/catering-policy.js?v=${BUILD}"></script>`,
-      `<script src="/delivery-management.js?v=${BUILD}"></script>`,
-      `<script src="/business-finance-core.js?v=${BUILD}"></script>`,
-      `<script src="/finance-integration.js?v=${BUILD}"></script>`,
-      `<script src="/pnl-reporting.js?v=${BUILD}"></script>`,
-      `<script src="/financial-period-integration.js?v=${BUILD}"></script>`,
-      `<script src="/orders-integration.js?v=${BUILD}"></script>`,
-      `<script data-fusion-inline="orders-delivery-integration">${inlineScript('orders-delivery-integration.js')}</script>`,
-      `<script src="/kitchen-integration.js?v=${BUILD}"></script>`,
-      `<script src="/kitchen-actions-integration.js?v=${BUILD}"></script>`,
-      `<script src="/prep-integration.js?v=${BUILD}"></script>`,
-      `<script src="/service-integration.js?v=${BUILD}"></script>`,
-      `<script src="/catering-owner-integration.js?v=${BUILD}"></script>`,
-      `<script src="/business-ui-integration.js?v=${BUILD}"></script>`,
-      `<script src="/business-actions-integration.js?v=${BUILD}"></script>`,
-      `<script data-fusion-inline="fusion-runtime">${inlineScript('fusion-runtime.js')}</script>`,
-      `<script data-fusion-inline="community-meals-labels">${inlineScript('community-meals-labels.js')}</script>`,
-      `<script data-fusion-inline="community-page-intro">${inlineScript('community-page-intro.js')}</script>`
+      ...RUNTIME_SCRIPTS.map(fileName => `<script data-fusion-inline="${scriptMarker(fileName)}">${inlineScript(fileName)}</script>`)
     ].join('\n');
 
     html = html.replace(/<\/body>\s*<\/html>\s*$/i, `${bootstrap}\n<!-- fusion-build:${BUILD} -->\n</body></html>`);
@@ -88,8 +104,10 @@ module.exports = async function handler(req, res) {
       standaloneDeliveryNavAbsent: !/data-area=["']delivery["']/i.test(migratedShell),
       standaloneDeliveryPageAbsent: !/id=["']page-delivery["']/i.test(migratedShell),
       ordersDeliveryIntegrationScript: /<script\s+data-fusion-inline=["']orders-delivery-integration["']/i.test(html),
-      communityMealsIntegrationScript: /<script\s+src=["']\/community-meals-labels\.js\?v=/i.test(html),
-      deliveryManagementScript: /<script\s+src=["']\/delivery-management\.js\?v=/i.test(html),
+      appCoreStyle: /<style\s+data-fusion-inline=["']app-core["']/i.test(html),
+      completeRuntime: RUNTIME_SCRIPTS.every(fileName => html.includes(`data-fusion-inline="${scriptMarker(fileName)}"`)),
+      communityMealsIntegrationScript: /<script\s+data-fusion-inline=["']community-meals-labels["']/i.test(html),
+      deliveryManagementScript: /<script\s+data-fusion-inline=["']delivery-management["']/i.test(html),
       ownerRouterScript: /<script\s+data-fusion-inline=["']owner-router["']/i.test(html),
       fusionRuntimeScript: /<script\s+data-fusion-inline=["']fusion-runtime["']/i.test(html),
       bootModeOwner: /window\.__FUSION_BOOT_MODE__=["']owner["']/i.test(html),
@@ -102,7 +120,7 @@ module.exports = async function handler(req, res) {
       legacyV383PopstateAbsent: !/Browser back\/forward follows the customer hub routes properly/i.test(migratedShell),
       legacyPreV383RouterAbsent: !/Default route is now the Welcome Hub/i.test(migratedShell)
     };
-    ownerHealth.ok = mode === 'owner' && ownerHealth.migrationOk && ownerHealth.standaloneDeliveryNavAbsent && ownerHealth.standaloneDeliveryPageAbsent && ownerHealth.ordersDeliveryIntegrationScript && ownerHealth.communityMealsIntegrationScript && ownerHealth.deliveryManagementScript && ownerHealth.ownerRouterScript && ownerHealth.fusionRuntimeScript && ownerHealth.bootModeOwner && ownerHealth.legacyShowTabAbsent && ownerHealth.legacyOwnerAreaAbsent && ownerHealth.legacyOwnerPageAbsent && ownerHealth.legacyReliabilityPatchAbsent && ownerHealth.legacyV383OwnerEntryAbsent && ownerHealth.legacyV383CustomerButtonAbsent && ownerHealth.legacyV383PopstateAbsent && ownerHealth.legacyPreV383RouterAbsent;
+    ownerHealth.ok = mode === 'owner' && ownerHealth.migrationOk && ownerHealth.standaloneDeliveryNavAbsent && ownerHealth.standaloneDeliveryPageAbsent && ownerHealth.appCoreStyle && ownerHealth.completeRuntime && ownerHealth.ordersDeliveryIntegrationScript && ownerHealth.communityMealsIntegrationScript && ownerHealth.deliveryManagementScript && ownerHealth.ownerRouterScript && ownerHealth.fusionRuntimeScript && ownerHealth.bootModeOwner && ownerHealth.legacyShowTabAbsent && ownerHealth.legacyOwnerAreaAbsent && ownerHealth.legacyOwnerPageAbsent && ownerHealth.legacyReliabilityPatchAbsent && ownerHealth.legacyV383OwnerEntryAbsent && ownerHealth.legacyV383CustomerButtonAbsent && ownerHealth.legacyV383PopstateAbsent && ownerHealth.legacyPreV383RouterAbsent;
 
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     res.setHeader('Pragma', 'no-cache');
