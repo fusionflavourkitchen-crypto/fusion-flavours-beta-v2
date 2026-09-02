@@ -25,6 +25,17 @@ const javascriptFiles = [
   ...filesIn('api').filter(name => name.endsWith('.js'))
 ];
 
+const runtimeScripts = [
+  'owner-router', 'legacy-state-bridge', 'owner-data-integration', 'harnell-public',
+  'harnell-owner-integration', 'main-delivery-cleanup', 'catering-policy',
+  'delivery-management', 'business-finance-core', 'finance-integration', 'pnl-reporting',
+  'financial-period-integration', 'orders-integration', 'orders-delivery-integration',
+  'kitchen-integration', 'kitchen-actions-integration', 'prep-integration',
+  'service-integration', 'catering-owner-integration', 'business-ui-integration',
+  'business-actions-integration', 'fusion-runtime', 'community-meals-labels',
+  'community-page-intro'
+];
+
 for (const file of javascriptFiles) {
   execFileSync(process.execPath, ['--check', file], { cwd: root, stdio: 'pipe' });
 }
@@ -112,6 +123,12 @@ async function verifyHealthHandler() {
   assert.ok(rendered.indexOf('data-fusion-inline="fusion-runtime"') < rendered.lastIndexOf('data-fusion-inline="community-meals-labels"'), 'Community Meals slot integration must load after the final runtime');
   assert.ok(rendered.includes("#ownerEntry,#ownerDirectEntry"), 'Owner entry must be handled from every customer page');
   assert.ok(rendered.includes('data-fusion-inline="orders-delivery-integration"'), 'Orders must embed the driver and delivery control centre');
+  assert.ok(rendered.includes('data-fusion-inline="app-core"'), 'Shared application styles must be embedded in the live page');
+  runtimeScripts.forEach(name => {
+    assert.strictEqual((rendered.match(new RegExp(`data-fusion-inline=["']${name}["']`, 'g')) || []).length, 1, `${name} must be embedded exactly once`);
+  });
+  assert.ok(!/<script\s+[^>]*src=["']\/(?:[^"']+\.js)/i.test(rendered), 'Rendered application must not depend on unavailable root JavaScript files');
+  assert.ok(!/<link\s+[^>]*href=["']\/app-core\.css/i.test(rendered), 'Rendered application must not depend on unavailable app-core.css');
   assert.ok(rendered.includes('🚚 Delivery settings'), 'Orders delivery settings must be present');
   assert.ok(rendered.includes('+ Add driver'), 'Orders driver management must be present');
   assert.ok(rendered.includes('id="communityDeliverySlot"'), 'Community Meals checkout must include the delivery-slot selector');
