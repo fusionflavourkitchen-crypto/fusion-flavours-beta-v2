@@ -59,7 +59,7 @@
 
     return `<article class="harnellDish">
       ${image ? `<img class="recipeThumb" src="${safe(image)}" alt="${safe(displayName)}">` : ''}
-      <span class="harnellVariantBadge">HARNELL</span>
+      <span class="harnellVariantBadge">COMMUNITY</span>
       <h3>${safe(displayName)}</h3>
       <p class="muted">${safe(description)}</p>
       <div class="row">
@@ -88,14 +88,16 @@
   function render() {
     installStyles();
     const settings = window.state?.settings || {};
-    if ($('harnellTitle')) $('harnellTitle').textContent = settings.harnell_title || 'Harnell House Menu';
-    if ($('harnellSubtitle')) $('harnellSubtitle').textContent = settings.harnell_subtitle || 'Simple, affordable meals for residents';
+    const savedTitle = String(settings.harnell_title || '');
+    const savedSubtitle = String(settings.harnell_subtitle || '');
+    if ($('harnellTitle')) $('harnellTitle').textContent = /harnell|resident/i.test(savedTitle) ? 'Community Meals' : (savedTitle || 'Community Meals');
+    if ($('harnellSubtitle')) $('harnellSubtitle').textContent = /harnell|resident/i.test(savedSubtitle) ? 'Affordable, filling meals for the whole community' : (savedSubtitle || 'Affordable, filling meals for the whole community');
 
     const start = String(settings.harnell_delivery_start || '18:00').slice(0, 5);
     const end = String(settings.harnell_delivery_end || '20:00').slice(0, 5);
     const open = typeof window.harnellOpen === 'function' ? window.harnellOpen() : true;
     if ($('harnellStatus')) {
-      $('harnellStatus').innerHTML = `${open ? '<b>🟢 Resident ordering open</b> · Order by ' : '<b>🔴 Resident ordering closed</b> · Cutoff '}${String(settings.harnell_cutoff_time || '15:00').slice(0, 5)}<br><b>🚪 Delivery window:</b> ${start}–${end}`;
+      $('harnellStatus').innerHTML = `${open ? '<b>🟢 Community ordering open</b> · Order by ' : '<b>🔴 Community ordering closed</b> · Cutoff '}${String(settings.harnell_cutoff_time || '15:00').slice(0, 5)}<br><b>🚪 Delivery window:</b> ${start}–${end}`;
     }
 
     const groups = [['mains', 'Mains'], ['sides', 'Sides'], ['drinks', 'Drinks'], ['desserts', 'Desserts']];
