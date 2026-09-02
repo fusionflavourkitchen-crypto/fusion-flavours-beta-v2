@@ -75,11 +75,24 @@
     </div>`;
   }
 
+  function communityOwnerControlHtml() {
+    const open = window.ownerData?.settings?.harnell_enabled === true;
+    return `<div id="communityOwnerControl" class="deliveryOwnerControl ${open ? 'open' : 'closed'}">
+      <div class="deliveryOwnerState">${open ? '🟢 COMMUNITY ORDERS OPEN' : '🔴 COMMUNITY ORDERS CLOSED'}</div>
+      <div>${open ? 'Customers can currently place Community Meals orders.' : 'Customers cannot place Community Meals orders.'}</div>
+      <div class="deliveryOwnerActions">
+        <button class="openDelivery" ${open ? 'disabled' : ''} onclick="setCommunityOrdersOpen(true)">Open community orders</button>
+        <button class="closeDelivery" ${open ? '' : 'disabled'} onclick="setCommunityOrdersOpen(false)">Close community orders</button>
+      </div>
+    </div>`;
+  }
+
   function enhanceDashboard() {
     const page = $('page-dash');
     if (!page || page.classList.contains('hidden')) return;
     $('deliveryOwnerControl')?.remove();
-    page.insertAdjacentHTML('afterbegin', ownerControlHtml());
+    $('communityOwnerControl')?.remove();
+    page.insertAdjacentHTML('afterbegin', ownerControlHtml() + communityOwnerControlHtml());
   }
 
   window.setDeliveryOrdersOpen = async open => {
@@ -94,6 +107,19 @@
       applyCustomerState();
       alert(open ? 'Delivery orders are now OPEN.' : 'Delivery orders are now CLOSED. Customers cannot place an order.');
     } catch (error) { alert('Could not change delivery ordering: ' + (error?.message || error)); }
+  };
+
+  window.setCommunityOrdersOpen = async open => {
+    try {
+      await window.api('/rest/v1/settings?id=eq.1', {
+        method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ harnell_enabled: open === true })
+      });
+      if (window.ownerData?.settings) window.ownerData.settings.harnell_enabled = open === true;
+      if (window.state?.settings) window.state.settings.harnell_enabled = open === true;
+      enhanceDashboard();
+      alert(open ? 'Community orders are now OPEN.' : 'Community orders are now CLOSED. Customers cannot place an order.');
+    } catch (error) { alert('Could not change Community ordering: ' + (error?.message || error)); }
   };
 
   function install() {
@@ -161,7 +187,7 @@
     applyCustomerState();
   }
 
-  window.FusionDeliveryOpen = { isOpen, refreshPublicState, applyCustomerState, enhanceDashboard };
+  window.FusionDeliveryOpen = { isOpen, refreshPublicState, applyCustomerState, enhanceDashboard, communityOwnerControlHtml };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
   else install();
   setInterval(() => {
