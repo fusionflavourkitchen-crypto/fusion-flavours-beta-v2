@@ -1,7 +1,11 @@
 {
   "functions": {
     "api/app.js": {
-      "includeFiles": "index.html"
+      "includeFiles": [
+        "index.html",
+        "community-meals-labels.js",
+        "community-page-intro.js"
+      ]
     }
   },
   "rewrites": [
