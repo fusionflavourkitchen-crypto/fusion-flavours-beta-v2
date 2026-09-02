@@ -5,12 +5,15 @@
 (() => {
   'use strict';
 
+  // Capture the canonical loader that remains in the migrated legacy shell.
+  // Versioned aliases such as loadOwnerDataV38 are deliberately removed by
+  // the server-side migration and therefore cannot be used at runtime.
+  const coreOwnerDataLoader = typeof loadOwnerData === 'function'
+    ? loadOwnerData
+    : null;
+
   async function loadCore(...args) {
-    try {
-      if (typeof loadOwnerDataV38 === 'function') return await loadOwnerDataV38(...args);
-    } catch (error) {
-      throw error;
-    }
+    if (coreOwnerDataLoader) return await coreOwnerDataLoader(...args);
     throw new Error('Core Owner data loader is unavailable');
   }
 
