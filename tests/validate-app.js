@@ -55,6 +55,8 @@ assert(/id="ff_estimate"/.test(fs.readFileSync(path.join(root, 'orders-delivery-
 assert(!/data-area=["']delivery["']/i.test(migrated), 'Standalone Delivery navigation must stay retired');
 assert(!/id=["']page-delivery["']/i.test(migrated), 'Standalone Delivery page must stay retired');
 assert(!/const\s+showTabV\w*\s*=\s*showTab\s*;/i.test(html), 'Legacy showTab wrapper reads the router before it loads');
+assert(!/showOwnerPage\s*\(/.test(migrated), 'Migrated Owner UI must not call the retired showOwnerPage router');
+assert(/FusionOwnerRouter\.showTab\('dailyadmin'\)/.test(html), 'P&L daily-cost shortcut must use the canonical Owner router');
 assert(/ordersDeliveryIntegrationScript/.test(fs.readFileSync(path.join(root, 'api/app.js'), 'utf8')));
 assert(/Array\.isArray\(cateringPackages\)/.test(fs.readFileSync(path.join(root, 'fusion-runtime.js'), 'utf8')), 'Catering package bridge must read the global package array, not the same-named DOM element');
 assert(/Array\.isArray\(bridged\)/.test(fs.readFileSync(path.join(root, 'catering-policy.js'), 'utf8')), 'Catering policy must reject a same-named DOM element');
