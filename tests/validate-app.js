@@ -56,6 +56,8 @@ assert(!/data-area=["']delivery["']/i.test(migrated), 'Standalone Delivery navig
 assert(!/id=["']page-delivery["']/i.test(migrated), 'Standalone Delivery page must stay retired');
 assert(!/const\s+showTabV\w*\s*=\s*showTab\s*;/i.test(html), 'Legacy showTab wrapper reads the router before it loads');
 assert(/ordersDeliveryIntegrationScript/.test(fs.readFileSync(path.join(root, 'api/app.js'), 'utf8')));
+assert(/Array\.isArray\(cateringPackages\)/.test(fs.readFileSync(path.join(root, 'fusion-runtime.js'), 'utf8')), 'Catering package bridge must read the global package array, not the same-named DOM element');
+assert(/Array\.isArray\(bridged\)/.test(fs.readFileSync(path.join(root, 'catering-policy.js'), 'utf8')), 'Catering policy must reject a same-named DOM element');
 
 const staticReferences = [...html.matchAll(/(?:src|href)=["']([^"'#?{}$]+)["']/gi)]
   .map(match => match[1])
