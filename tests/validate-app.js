@@ -111,6 +111,9 @@ async function verifyHealthHandler() {
   assert.ok(rendered.includes('data-fusion-inline="fusion-runtime"'), 'Top-level navigation runtime must be embedded in the live page');
   assert.ok(rendered.indexOf('data-fusion-inline="fusion-runtime"') < rendered.lastIndexOf('data-fusion-inline="community-meals-labels"'), 'Community Meals slot integration must load after the final runtime');
   assert.ok(rendered.includes("#ownerEntry,#ownerDirectEntry"), 'Owner entry must be handled from every customer page');
+  assert.ok(rendered.includes('data-fusion-inline="orders-delivery-integration"'), 'Orders must embed the driver and delivery control centre');
+  assert.ok(rendered.includes('🚚 Delivery settings'), 'Orders delivery settings must be present');
+  assert.ok(rendered.includes('+ Add driver'), 'Orders driver management must be present');
   assert.ok(rendered.includes('id="communityDeliverySlot"'), 'Community Meals checkout must include the delivery-slot selector');
   assert.ok(!require('fs').readFileSync(require('path').join(process.cwd(), 'community-meals-labels.js'), 'utf8').includes("$('harnellView')"), 'Community Meals integration must target the live customer page');
   const communityIntegration = require('fs').readFileSync(require('path').join(process.cwd(), 'community-meals-labels.js'), 'utf8');
