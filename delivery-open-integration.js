@@ -37,7 +37,7 @@
     banner.className = `deliveryOpenBanner ${open ? 'open' : 'closed'}`;
     banner.innerHTML = open
       ? '<b>🟢 Delivery orders are OPEN</b><br><span>Order now and we’ll start preparing your food.</span>'
-      : '<b>🔴 Delivery orders are CLOSED</b><br><span>Ordering will reopen when Chef Dan is ready to serve.</span>';
+      : '<b>Delivery orders are closed today, please see open times above.</b>';
     customer.querySelectorAll('.card button').forEach(button => {
       if (button.textContent.trim() === 'Out of stock') return;
       button.disabled = !open;
@@ -114,7 +114,7 @@
     if (typeof window.addItem === 'function' && !window.addItem.__deliveryOpen) {
       const baseAddItem = window.addItem;
       const guardedAddItem = function () {
-        if (!isOpen()) return alert('Delivery orders are currently closed.');
+        if (!isOpen()) return alert('Delivery orders are closed today, please see open times above.');
         return baseAddItem.apply(this, arguments);
       };
       guardedAddItem.__deliveryOpen = true;
@@ -124,7 +124,7 @@
     if (typeof window.confirmOptions === 'function' && !window.confirmOptions.__deliveryOpen) {
       const baseConfirmOptions = window.confirmOptions;
       const guardedConfirmOptions = function () {
-        if (!isOpen()) return alert('Delivery orders are currently closed.');
+        if (!isOpen()) return alert('Delivery orders are closed today, please see open times above.');
         return baseConfirmOptions.apply(this, arguments);
       };
       guardedConfirmOptions.__deliveryOpen = true;
@@ -151,7 +151,7 @@
         checkout.textContent = 'Checking availability…';
         const open = await refreshPublicState();
         if (!open) {
-          alert('Delivery orders are currently closed. Please check back when Chef Dan is ready to serve.');
+          alert('Delivery orders are closed today, please see open times above.');
           return;
         }
         return original.call(this, event);
