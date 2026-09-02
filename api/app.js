@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260902-owner-entry-inline-1';
+const BUILD = '20260902-orders-delivery-inline-1';
 
 function inlineScript(fileName) {
   return fs.readFileSync(path.join(process.cwd(), fileName), 'utf8').replace(/<\/script/gi, '<\\/script');
@@ -65,6 +65,7 @@ module.exports = async function handler(req, res) {
       `<script src="/pnl-reporting.js?v=${BUILD}"></script>`,
       `<script src="/financial-period-integration.js?v=${BUILD}"></script>`,
       `<script src="/orders-integration.js?v=${BUILD}"></script>`,
+      `<script data-fusion-inline="orders-delivery-integration">${inlineScript('orders-delivery-integration.js')}</script>`,
       `<script src="/kitchen-integration.js?v=${BUILD}"></script>`,
       `<script src="/kitchen-actions-integration.js?v=${BUILD}"></script>`,
       `<script src="/prep-integration.js?v=${BUILD}"></script>`,
@@ -84,9 +85,9 @@ module.exports = async function handler(req, res) {
       mode,
       migrationOk: migrationIssues.length === 0,
       migrationIssues,
-      standaloneDeliveryNavAbsent: !/data-area=["']delivery["']/i.test(html),
-      standaloneDeliveryPageAbsent: !/id=["']page-delivery["']/i.test(html),
-      ordersDeliveryIntegrationScript: /<script\s+src=["']\/orders-delivery-integration\.js\?v=/i.test(html),
+      standaloneDeliveryNavAbsent: !/data-area=["']delivery["']/i.test(migratedShell),
+      standaloneDeliveryPageAbsent: !/id=["']page-delivery["']/i.test(migratedShell),
+      ordersDeliveryIntegrationScript: /<script\s+data-fusion-inline=["']orders-delivery-integration["']/i.test(html),
       communityMealsIntegrationScript: /<script\s+src=["']\/community-meals-labels\.js\?v=/i.test(html),
       deliveryManagementScript: /<script\s+src=["']\/delivery-management\.js\?v=/i.test(html),
       ownerRouterScript: /<script\s+data-fusion-inline=["']owner-router["']/i.test(html),
