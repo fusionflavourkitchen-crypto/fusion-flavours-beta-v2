@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260902-retail-product-details-1';
+const BUILD = '20260902-owner-entry-inline-1';
 
 function inlineScript(fileName) {
   return fs.readFileSync(path.join(process.cwd(), fileName), 'utf8').replace(/<\/script/gi, '<\\/script');
@@ -35,6 +35,7 @@ module.exports = async function handler(req, res) {
     const htmlPath = path.join(process.cwd(), 'index.html');
     let html = migrateLegacyHtml(fs.readFileSync(htmlPath, 'utf8'));
     const migrationIssues = migrationFailures(html);
+    const migratedShell = html;
     const mode = String(req.query?.mode || '').toLowerCase();
     const healthRequested = String(req.query?.health || '') === '1';
 
@@ -51,7 +52,7 @@ module.exports = async function handler(req, res) {
 
     const bootstrap = [
       `<script>window.__FUSION_BOOT_MODE__=${JSON.stringify(mode)};</script>`,
-      `<script src="/owner-router.js?v=${BUILD}"></script>`,
+      `<script data-fusion-inline="owner-router">${inlineScript('owner-router.js')}</script>`,
       `<script src="/legacy-state-bridge.js?v=${BUILD}"></script>`,
       `<script src="/owner-data-integration.js?v=${BUILD}"></script>`,
       `<script src="/harnell-public.js?v=${BUILD}"></script>`,
@@ -71,7 +72,7 @@ module.exports = async function handler(req, res) {
       `<script src="/catering-owner-integration.js?v=${BUILD}"></script>`,
       `<script src="/business-ui-integration.js?v=${BUILD}"></script>`,
       `<script src="/business-actions-integration.js?v=${BUILD}"></script>`,
-      `<script src="/fusion-runtime.js?v=${BUILD}"></script>`,
+      `<script data-fusion-inline="fusion-runtime">${inlineScript('fusion-runtime.js')}</script>`,
       `<script data-fusion-inline="community-meals-labels">${inlineScript('community-meals-labels.js')}</script>`,
       `<script data-fusion-inline="community-page-intro">${inlineScript('community-page-intro.js')}</script>`
     ].join('\n');
@@ -88,17 +89,17 @@ module.exports = async function handler(req, res) {
       ordersDeliveryIntegrationScript: /<script\s+src=["']\/orders-delivery-integration\.js\?v=/i.test(html),
       communityMealsIntegrationScript: /<script\s+src=["']\/community-meals-labels\.js\?v=/i.test(html),
       deliveryManagementScript: /<script\s+src=["']\/delivery-management\.js\?v=/i.test(html),
-      ownerRouterScript: /<script\s+src=["']\/owner-router\.js\?v=/i.test(html),
-      fusionRuntimeScript: /<script\s+src=["']\/fusion-runtime\.js\?v=/i.test(html),
+      ownerRouterScript: /<script\s+data-fusion-inline=["']owner-router["']/i.test(html),
+      fusionRuntimeScript: /<script\s+data-fusion-inline=["']fusion-runtime["']/i.test(html),
       bootModeOwner: /window\.__FUSION_BOOT_MODE__=["']owner["']/i.test(html),
-      legacyShowTabAbsent: !/window\.showTab\s*=/i.test(html),
-      legacyOwnerAreaAbsent: !/window\.showOwnerArea\s*=/i.test(html),
-      legacyOwnerPageAbsent: !/window\.showOwnerPage\s*=/i.test(html),
-      legacyReliabilityPatchAbsent: !/Owner navigation reliability fix/i.test(html),
-      legacyV383OwnerEntryAbsent: !/Owner must be its own exclusive top-level view/i.test(html),
-      legacyV383CustomerButtonAbsent: !/Customer View from Owner always returns to the Welcome Hub/i.test(html),
-      legacyV383PopstateAbsent: !/Browser back\/forward follows the customer hub routes properly/i.test(html),
-      legacyPreV383RouterAbsent: !/Default route is now the Welcome Hub/i.test(html)
+      legacyShowTabAbsent: !/window\.showTab\s*=/i.test(migratedShell),
+      legacyOwnerAreaAbsent: !/window\.showOwnerArea\s*=/i.test(migratedShell),
+      legacyOwnerPageAbsent: !/window\.showOwnerPage\s*=/i.test(migratedShell),
+      legacyReliabilityPatchAbsent: !/Owner navigation reliability fix/i.test(migratedShell),
+      legacyV383OwnerEntryAbsent: !/Owner must be its own exclusive top-level view/i.test(migratedShell),
+      legacyV383CustomerButtonAbsent: !/Customer View from Owner always returns to the Welcome Hub/i.test(migratedShell),
+      legacyV383PopstateAbsent: !/Browser back\/forward follows the customer hub routes properly/i.test(migratedShell),
+      legacyPreV383RouterAbsent: !/Default route is now the Welcome Hub/i.test(migratedShell)
     };
     ownerHealth.ok = mode === 'owner' && ownerHealth.migrationOk && ownerHealth.standaloneDeliveryNavAbsent && ownerHealth.standaloneDeliveryPageAbsent && ownerHealth.ordersDeliveryIntegrationScript && ownerHealth.communityMealsIntegrationScript && ownerHealth.deliveryManagementScript && ownerHealth.ownerRouterScript && ownerHealth.fusionRuntimeScript && ownerHealth.bootModeOwner && ownerHealth.legacyShowTabAbsent && ownerHealth.legacyOwnerAreaAbsent && ownerHealth.legacyOwnerPageAbsent && ownerHealth.legacyReliabilityPatchAbsent && ownerHealth.legacyV383OwnerEntryAbsent && ownerHealth.legacyV383CustomerButtonAbsent && ownerHealth.legacyV383PopstateAbsent && ownerHealth.legacyPreV383RouterAbsent;
 
