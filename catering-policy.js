@@ -30,8 +30,13 @@
 
   function packages() {
     try {
-      if (typeof window.__fusionGetCateringPackages === 'function') return window.__fusionGetCateringPackages() || [];
-      return window.cateringPackages || [];
+      const bridged = typeof window.__fusionGetCateringPackages === 'function' ? window.__fusionGetCateringPackages() : null;
+      if (Array.isArray(bridged)) return bridged;
+      // The legacy page declares this with `let`, so it lives in the global
+      // lexical scope rather than on window. The matching element id otherwise
+      // makes window.cateringPackages resolve to a DOM node.
+      if (typeof cateringPackages !== 'undefined' && Array.isArray(cateringPackages)) return cateringPackages;
+      return [];
     } catch (_) { return []; }
   }
 
