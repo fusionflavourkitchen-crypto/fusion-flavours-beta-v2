@@ -74,13 +74,14 @@ const harnellOwnerIntegration = fs.readFileSync(path.join(root, 'harnell-owner-i
 assert(/window\.loadHarnellOwnerData\s*=\s*loadData/.test(harnellOwnerIntegration), 'Community Meals must restore its migrated data loader');
 assert(/window\.harnellOrderLines\s*=\s*orderLines/.test(harnellOwnerIntegration), 'Community Orders must restore its migrated order-lines helper');
 
+const harnellApiCalls = [];
 const harnellSandbox = {
   window: { ownerData: { harnellOrderItems: [
     { id: 1, harnell_order_id: 41 },
     { id: 2, harnell_order_id: 42 },
     { id: 3, harnell_order_id: '41' }
   ] } },
-  api: async () => []
+  api: async pathname => { harnellApiCalls.push(pathname); return []; }
 };
 harnellSandbox.window.window = harnellSandbox.window;
 vm.runInNewContext(harnellOwnerIntegration, harnellSandbox, { filename: 'harnell-owner-integration.js' });
@@ -89,6 +90,11 @@ assert.deepStrictEqual(
   [1, 3],
   'Community Orders must match all lines belonging to an order'
 );
+
+async function verifyCommunityMealsLoader() {
+  await harnellSandbox.window.FusionHarnellOwner.beforeRender();
+  assert.strictEqual(harnellApiCalls.length, 4, 'Community Meals loader must make all four database requests');
+}
 
 const staticReferences = [...html.matchAll(/(?:src|href)=["']([^"'#?{}$]+)["']/gi)]
   .map(match => match[1])
@@ -198,7 +204,7 @@ async function verifyClosedDeliveryGate() {
   assert.strictEqual(orderRpcCalled, false, 'Closed delivery must stop before the order RPC');
 }
 
-Promise.all([verifyHealthHandler(), verifyClosedDeliveryGate()])
+Promise.all([verifyHealthHandler(), verifyClosedDeliveryGate(), verifyCommunityMealsLoader()])
   .then(() => console.log(`Validated ${javascriptFiles.length} JavaScript files, ${inlineScripts.length} inline scripts and owner health.`))
   .catch(error => {
     console.error(error);
