@@ -65,6 +65,9 @@ assert(/FusionTideTax/.test(fs.readFileSync(path.join(root, 'tide-tax-integratio
 const deliveryOpen = fs.readFileSync(path.join(root, 'delivery-open-integration.js'), 'utf8');
 assert(/preorder_open/.test(deliveryOpen), 'Delivery open control must use the public service-state field');
 assert(/setDeliveryOrdersOpen/.test(deliveryOpen), 'Owner Dashboard must expose the delivery open/closed action');
+assert(/setCommunityOrdersOpen/.test(deliveryOpen), 'Owner Dashboard must expose the Community Orders open/closed action');
+assert(/harnell_enabled/.test(deliveryOpen), 'Community Orders control must use the existing public Community Meals setting');
+assert(/COMMUNITY ORDERS OPEN/.test(deliveryOpen) && /COMMUNITY ORDERS CLOSED/.test(deliveryOpen), 'Community Orders control must show a clear live state');
 assert(/\/api\/submit-delivery-order/.test(html), 'Main Delivery checkout must pass through the server-side open/closed gate');
 assert(fs.existsSync(path.join(root, 'api/submit-delivery-order.js')), 'Server-side delivery order gate must exist');
 const ownerDataIntegration = fs.readFileSync(path.join(root, 'owner-data-integration.js'), 'utf8');
