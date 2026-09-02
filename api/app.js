@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { migrateLegacyHtml, migrationFailures } = require('./lib/legacy-html-migration');
 
-const BUILD = '20260902-complete-runtime-audit-2';
+const BUILD = '20260902-delivery-open-control-3';
 
 const RUNTIME_SCRIPTS = [
   'owner-router.js',
@@ -11,6 +11,7 @@ const RUNTIME_SCRIPTS = [
   'harnell-public.js',
   'harnell-owner-integration.js',
   'main-delivery-cleanup.js',
+  'delivery-open-integration.js',
   'catering-policy.js',
   'delivery-management.js',
   'business-finance-core.js',
