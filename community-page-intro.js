@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 function ensureIntro(){
-  const view=document.getElementById('harnellView');
+  const view=document.getElementById('harnellCustomer');
   if(!view||view.classList.contains('hidden')||document.getElementById('communityMealsIntro'))return;
   const title=document.getElementById('harnellTitle');
   const anchor=title?.parentElement||view.firstElementChild;
