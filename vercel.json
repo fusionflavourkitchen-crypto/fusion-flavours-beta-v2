@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/app.js": {
-      "includeFiles": "{index.html,community-meals-labels.js,community-page-intro.js,owner-router.js,fusion-runtime.js,orders-delivery-integration.js}"
+      "includeFiles": "*.{html,js,css}"
     }
   },
   "rewrites": [
