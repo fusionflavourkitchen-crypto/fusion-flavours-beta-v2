@@ -202,7 +202,7 @@ async function verifyClosedDeliveryGate() {
     await handler({ method:'POST', body:{ p_customer_name:'Blocked test' } }, res);
   } finally { global.fetch = originalFetch; }
   assert.strictEqual(statusCode, 423, body);
-  assert.strictEqual(JSON.parse(body).message, 'Delivery orders are currently closed.');
+  assert.strictEqual(JSON.parse(body).message, 'Delivery orders are closed today, please see open times above.');
   assert.strictEqual(orderRpcCalled, false, 'Closed delivery must stop before the order RPC');
 }
 
