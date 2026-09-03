@@ -109,6 +109,12 @@
     renderBasket();
   }
 
+  function clearBasket() {
+    basket = [];
+    saveBasket();
+    renderBasket();
+  }
+
   function dishCard(row) {
     const soldOut = Number(row?.items?.stock || 0) <= 0;
     const canOrder = (typeof window.harnellOpen === 'function' ? window.harnellOpen() : true) && !soldOut;
@@ -187,6 +193,7 @@
     window.harnellDisplayDescription = displayDescription;
     window.addHarnellItem = addItem;
     window.changeHarnellQty = changeQuantity;
+    window.clearHarnellBasket = clearBasket;
     window.renderHarnellBasket = renderBasket;
     window.loadHarnellPublic = load;
     window.renderHarnellCustomer = render;
