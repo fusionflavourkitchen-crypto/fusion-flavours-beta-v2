@@ -8,7 +8,8 @@ const skip=new Set(['SCRIPT','STYLE','TEXTAREA','INPUT','SELECT','OPTION']);
 function renameText(root=document.body){if(!root)return;const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),nodes=[];let n;while((n=w.nextNode()))nodes.push(n);nodes.forEach(node=>{const p=node.parentElement;if(!p||skip.has(p.tagName))return;let v=node.nodeValue||'';if(!/(harnell|resident)/i.test(v))return;rules.forEach(([re,to])=>v=v.replace(re,to));if(v!==node.nodeValue)node.nodeValue=v})}
 async function loadCommunitySlots(){try{communitySlots=await api('/rest/v1/rpc/public_available_community_delivery_slots',{method:'POST',body:'{}'})||[]}catch(e){console.warn('Community slots',e);communitySlots=[]}return communitySlots}
 async function loadOwnerCommunitySlots(){try{ownerCommunitySlots=await api('/rest/v1/community_delivery_slots?select=*&order=sort_order.asc,start_time.asc')||[]}catch(e){console.warn('Owner community slots',e);ownerCommunitySlots=[]}return ownerCommunitySlots}
-function communityBasket(){return Array.isArray(window.harnellBasket)?window.harnellBasket:[]}\nfunction basketQty(){return communityBasket().reduce((n,x)=>n+Number(x.quantity||0),0)}
+function communityBasket(){return Array.isArray(window.harnellBasket)?window.harnellBasket:[]}
+function basketQty(){return communityBasket().reduce((n,x)=>n+Number(x.quantity||0),0)}
 function selectedSlot(){const id=Number($('communityDeliverySlot')?.value||0);return communitySlots.find(s=>Number(s.id)===id)}
 function slotLabel(s){return `${String(s.start_time||'').slice(0,5)}–${String(s.end_time||'').slice(0,5)}`}
 function availableSlots(){const qty=basketQty();return communitySlots.filter(s=>s.available&&Number(s.portions_left||0)>=Math.max(1,qty))}
