@@ -4,6 +4,17 @@
 
   const $ = id => document.getElementById(id);
   let categoryNames = {};
+  let basket = [];
+
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('ffCommunityBasket') || '[]');
+    if (Array.isArray(saved)) basket = saved;
+  } catch (_) {}
+
+  function saveBasket() {
+    try { sessionStorage.setItem('ffCommunityBasket', JSON.stringify(basket)); } catch (_) {}
+    window.harnellBasket = basket;
+  }
 
   function installStyles() {
     if ($('fusionHarnellStyles')) return;
@@ -46,25 +57,77 @@
     return 'mains';
   }
 
+  function orderingOpen() {
+    const settings = window.state?.settings || {};
+    if (settings.harnell_enabled !== true) return false;
+    const now = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit', hour12: false
+    }).format(new Date());
+    return now <= String(settings.harnell_cutoff_time || '15:00').slice(0, 5);
+  }
+
+  function displayName(row) {
+    return row?.resident_name || row?.items?.name || 'Dish';
+  }
+
+  function displayDescription(row) {
+    return row?.resident_description || row?.items?.description || '';
+  }
+
+  function renderBasket() {
+    const lines = $('harnellBasketLines');
+    if (!lines) return;
+    lines.innerHTML = basket.map(item => `<div class="harnellLine">
+      <div><b>${safe(item.item_name)}</b><div class="muted">${money(item.price)} each</div></div>
+      <div><button type="button" onclick="changeHarnellQty(${Number(item.item_id)},-1)" aria-label="Remove one ${safe(item.item_name)}">−</button> <b>${Number(item.quantity)}</b> <button type="button" onclick="changeHarnellQty(${Number(item.item_id)},1)" aria-label="Add one ${safe(item.item_name)}">+</button></div>
+    </div>`).join('') || '<p class="muted">Nothing added yet.</p>';
+    if ($('harnellBasketTotal')) {
+      $('harnellBasketTotal').textContent = money(basket.reduce((total, item) => total + Number(item.price) * Number(item.quantity), 0));
+    }
+  }
+
+  function addItem(id) {
+    const row = (window.harnellMenuRows || []).find(item => Number(item.item_id) === Number(id));
+    if (!row || !orderingOpen() || Number(row?.items?.stock || 0) <= 0) return;
+    const existing = basket.find(item => Number(item.item_id) === Number(id));
+    if (existing) existing.quantity += 1;
+    else basket.push({
+      item_id: Number(id), item_name: displayName(row),
+      price: Number(row.resident_price_pence || 0) / 100, quantity: 1
+    });
+    saveBasket();
+    renderBasket();
+    if (typeof window.showToast === 'function') window.showToast();
+  }
+
+  function changeQuantity(id, difference) {
+    const item = basket.find(line => Number(line.item_id) === Number(id));
+    if (!item) return;
+    item.quantity += Number(difference || 0);
+    if (item.quantity <= 0) basket = basket.filter(line => line !== item);
+    saveBasket();
+    renderBasket();
+  }
+
   function dishCard(row) {
     const soldOut = Number(row?.items?.stock || 0) <= 0;
     const canOrder = (typeof window.harnellOpen === 'function' ? window.harnellOpen() : true) && !soldOut;
-    const displayName = typeof window.harnellDisplayName === 'function'
+    const itemName = typeof window.harnellDisplayName === 'function'
       ? window.harnellDisplayName(row)
-      : (row.resident_name || row?.items?.name || 'Dish');
+      : displayName(row);
     const description = typeof window.harnellDisplayDescription === 'function'
       ? window.harnellDisplayDescription(row)
-      : (row.resident_description || row?.items?.description || '');
+      : displayDescription(row);
     const image = row?.items?.image_url;
 
     return `<article class="harnellDish">
-      ${image ? `<img class="recipeThumb" src="${safe(image)}" alt="${safe(displayName)}">` : ''}
+      ${image ? `<img class="recipeThumb" src="${safe(image)}" alt="${safe(itemName)}">` : ''}
       <span class="harnellVariantBadge">COMMUNITY</span>
-      <h3>${safe(displayName)}</h3>
+      <h3>${safe(itemName)}</h3>
       <p class="muted">${safe(description)}</p>
       <div class="row">
         <span class="harnellPrice">${money(Number(row.resident_price_pence || 0) / 100)}</span>
-        <button ${canOrder ? '' : 'disabled'} onclick="addHarnellItem(${Number(row.item_id)})">${soldOut ? 'Sold out' : 'Add'}</button>
+        <button type="button" ${canOrder ? '' : 'disabled'} onclick="addHarnellItem(${Number(row.item_id)})">${soldOut ? 'Sold out' : 'Add'}</button>
       </div>
     </article>`;
   }
@@ -118,6 +181,13 @@
 
   function install() {
     installStyles();
+    saveBasket();
+    window.harnellOpen = orderingOpen;
+    window.harnellDisplayName = displayName;
+    window.harnellDisplayDescription = displayDescription;
+    window.addHarnellItem = addItem;
+    window.changeHarnellQty = changeQuantity;
+    window.renderHarnellBasket = renderBasket;
     window.loadHarnellPublic = load;
     window.renderHarnellCustomer = render;
   }
