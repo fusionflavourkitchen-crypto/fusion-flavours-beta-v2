@@ -957,15 +957,37 @@ async function optimiseImage(file){
   if(typeof createImageBitmap==='function'){
    try{source=await createImageBitmap(file)}catch(e){}
   }
+  if(!source&&typeof ImageDecoder==='function'){
+   try{
+    const decoder=new ImageDecoder({data:await file.arrayBuffer(),type:type||'image/jpeg'});
+    const decoded=await decoder.decode({frameIndex:0});
+    source=decoded.image;
+   }catch(e){}
+  }
   if(!source){
    objectUrl=URL.createObjectURL(file);
-   source=await new Promise((resolve,reject)=>{
+   source=await new Promise(resolve=>{
     const img=new Image();
     img.onload=()=>resolve(img);
-    img.onerror=()=>reject(new Error('This photo format could not be opened on this device. Try saving or sharing it as JPG, PNG or WebP and upload that copy.'));
+    img.onerror=()=>resolve(null);
     img.src=objectUrl;
    });
   }
+  if(!source&&typeof FileReader==='function'){
+   source=await new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onerror=()=>resolve(null);
+    reader.onload=()=>{
+     const img=new Image();
+     img.onload=()=>resolve(img);
+     img.onerror=()=>resolve(null);
+     img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+   });
+  }
+  if(!source&&(/image\/jpe?g/i.test(type)||/\.jpe?g$/i.test(name)))return file;
+  if(!source)throw new Error('This phone photo format is not supported. Open the photo, choose Edit, save a copy as JPG, then upload that copy.');
   const sw=source.width||source.naturalWidth,sh=source.height||source.naturalHeight;
   if(!sw||!sh)throw new Error('The photo could not be read.');
   const m=1800,s=Math.min(1,m/Math.max(sw,sh)),w=Math.max(1,Math.round(sw*s)),h=Math.max(1,Math.round(sh*s)),c=document.createElement('canvas');
@@ -1127,7 +1149,7 @@ function renderCateringAdmin(){
   $('page-catering').innerHTML=`<h2>Catering & Social Links</h2>
   <div class="panel"><h2>Customer links</h2><label>Facebook URL<input id="cat_fb" value="${esc(s.facebook_url||'')}"></label><label>TikTok URL<input id="cat_tt" value="${esc(s.tiktok_url||'')}"></label><label>Catering / contact email<input id="cat_email" type="email" value="${esc(s.catering_email||'fusionflavourkitchen@gmail.com')}"></label></div>
   <div class="panel" style="margin-top:12px"><h2>Catering page</h2><label class="switch"><input id="cat_enabled" type="checkbox" ${s.catering_enabled!==false?'checked':''}> Show catering button to customers</label><label>Page title<input id="cat_title" value="${esc(s.catering_title||'')}"></label><label>Intro / promotion<textarea id="cat_intro">${esc(s.catering_intro||'')}</textarea></label><label>Food & menu information<textarea id="cat_food" style="min-height:130px">${esc(s.catering_food_text||'')}</textarea></label><label>Prices per head / guide prices<textarea id="cat_prices" style="min-height:130px">${esc(s.catering_price_text||'')}</textarea></label><label>Extra information<textarea id="cat_extra">${esc(s.catering_extra_text||'')}</textarea></label><button style="width:100%" onclick="saveCateringSettings()">Save catering page</button></div>
-  <div class="panel" style="margin-top:12px"><h2>Example photos</h2><input id="cat_photo" type="file" accept="image/jpeg,image/png,image/webp"><input id="cat_caption" placeholder="Photo caption"><button style="width:100%" onclick="uploadCateringPhoto()">+ Upload catering photo</button>${g.map(x=>`<div class="cateringAdminPhoto"><img src="${esc(x.image_url)}"><div><b>${esc(x.caption||'Catering photo')}</b></div><button class="danger" onclick="deleteCateringPhoto(${x.id})">Delete</button></div>`).join('')||'<p class="muted">No catering photos uploaded yet.</p>'}</div>
+  <div class="panel" style="margin-top:12px"><h2>Example photos</h2><input id="cat_photo" type="file" accept="image/*"><input id="cat_caption" placeholder="Photo caption"><button style="width:100%" onclick="uploadCateringPhoto()">+ Upload catering photo</button>${g.map(x=>`<div class="cateringAdminPhoto"><img src="${esc(x.image_url)}"><div><b>${esc(x.caption||'Catering photo')}</b></div><button class="danger" onclick="deleteCateringPhoto(${x.id})">Delete</button></div>`).join('')||'<p class="muted">No catering photos uploaded yet.</p>'}</div>
   <div class="panel" style="margin-top:12px"><h2>Recent enquiries</h2>${inq.map(x=>`<div class="inquiryRow"><div class="row"><b>${esc(x.customer_name)}</b><span>${new Date(x.created_at).toLocaleDateString('en-GB')}</span></div><div>${esc(x.email)}${x.phone?' · '+esc(x.phone):''}</div><div class="muted">${esc(x.event_type||'Event')}${x.event_date?' · '+esc(x.event_date):''}${x.guest_count?' · '+x.guest_count+' guests':''}${x.event_location?' · '+esc(x.event_location):''}</div>${x.message?`<div style="margin-top:5px">${esc(x.message)}</div>`:''}</div>`).join('')||'<p class="muted">No catering enquiries yet.</p>'}</div>`;
 }
 window.saveCateringSettings=async()=>{
