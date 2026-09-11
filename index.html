@@ -1117,6 +1117,13 @@ legalPageHtml=function(page){
 
 /* ===== CATERING / SOCIALS ===== */
 function nl2br(v){return esc(v||'').replaceAll('\n','<br>')}
+const CATERING_EXAMPLE_PHOTOS=[
+  {image_url:'/catering-examples/falafel-pittas.webp',caption:'Falafel, warm pittas and roasted peppers'},
+  {image_url:'/catering-examples/chicken-souvlaki-pittas.webp',caption:'Chicken souvlaki skewers and filled pittas'},
+  {image_url:'/catering-examples/buffet-salads-pittas.webp',caption:'Mediterranean buffet salads and pittas'},
+  {image_url:'/catering-examples/homemade-dips.webp',caption:'Homemade tzatziki, houmous and ezme'},
+  {image_url:'/catering-examples/ezme-chilli-sauce.webp',caption:'Homemade ezme chilli sauce'}
+];
 async function renderCateringCustomer(){
   const s=state.settings||{};
   $('cateringTitle').textContent=s.catering_title||'Fusion Flavours Catering & Events';
@@ -1125,8 +1132,9 @@ async function renderCateringCustomer(){
   $('cateringPrices').innerHTML=nl2br(s.catering_price_text||'');
   $('cateringExtra').innerHTML=nl2br(s.catering_extra_text||'');
   $('backToMenuLink').href=location.origin+location.pathname;
-  let gallery=[];
-  try{gallery=await api('/rest/v1/catering_gallery?active=eq.true&select=*&order=sort_order.asc,id.asc')}catch{}
+  let uploaded=[];
+  try{uploaded=await api('/rest/v1/catering_gallery?active=eq.true&select=*&order=sort_order.asc,id.asc')}catch{}
+  const gallery=[...CATERING_EXAMPLE_PHOTOS,...uploaded];
   $('cateringGalleryWrap').classList.toggle('hidden',gallery.length===0);
   $('cateringGallery').innerHTML=gallery.map(g=>`<figure><img src="${esc(g.image_url)}" alt="${esc(g.caption||'Fusion Flavours catering food')}" loading="lazy"><figcaption>${esc(g.caption||'Fusion Flavours')}</figcaption></figure>`).join('');
 }
